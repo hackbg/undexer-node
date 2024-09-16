@@ -10,3 +10,5 @@ run:
   docker run -i --network=host "{{image}}:{{tag}}"
 shell:
   docker run -it --network=host "{{image}}:{{tag}}" --
+root:
+  docker run -itu 0 --network=host "{{image}}:{{tag}}" --

@@ -30,15 +30,15 @@ class Service {
   }
   stop () {
     console.log('Stopping:', this.name)
-    if (this.process) {
-      const { pid } = this.process
-      this.process.kill()
-      this.process = null
-      console.log('Stopped:', this.name, 'at PID:', pid)
-      return true
+    if (!this.process) {
+      console.log('Already stopped:', this.name)
+      return false
     }
-    console.log('Already stopped:', this.name)
-    return false
+    const { pid } = this.process
+    this.process.kill()
+    this.process = null
+    console.log('Stopped:', this.name, 'at PID:', pid)
+    return true
   }
 }
 
@@ -74,10 +74,10 @@ Deno.serve({ host: CONTROL_HOST, port: CONTROL_PORT }, (req) => {
       case '/proxy/stop':
         services.proxy.stop()
         return redirect('/')
-      case '/':
+      case '':
         return respond(200, info)
       default:
-        return respond(404, info)
+        return respond(404, { error: 'not found' })
     }
   } catch (e) {
     console.error(e)

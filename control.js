@@ -27,7 +27,7 @@ function main () {
   }
 
   // Run service
-  Deno.serve({ host: CONTROL_HOST, port: CONTROL_PORT }, (req) => {
+  Deno.serve({ host: CONTROL_HOST, port: CONTROL_PORT }, async (req) => {
     try {
       // Service status
       const info = {
@@ -46,13 +46,13 @@ function main () {
           services.node.start()
           return redirect('/')
         case '/node/stop':
-          services.node.stop()
+          await services.node.stop()
           return redirect('/')
         case '/proxy/start':
           services.proxy.start()
           return redirect('/')
         case '/proxy/stop':
-          services.proxy.stop()
+          await services.proxy.stop()
           return redirect('/')
         case '':
           return respond(200, info)
@@ -101,24 +101,22 @@ class Service {
     }
     const options = { args: this.args, stdout: 'piped', stderr: 'piped' }
     this.process = new Deno.Command(this.command, options).spawn()
+    this.process.status.then(status=>{
+      console.log(
+        'Died:', this.name,
+        'with PID:', this.process.pid,
+        'and status:', JSON.stringify(status)
+      )
+      this.process = null
+    })
     console.log('Started:', this.name, 'at PID:', this.process.pid)
-
     // Write service stdout and stderr to host stdout
-    this.process.stdout
-      .pipeThrough(new TextLineStream())
-      .pipeTo(new WritableStream({ write (chunk, _) {
-        console.log(`[${name}] [stderr]: ${chunk}`)
-      } }))
-    this.process.stderr
-      .pipeThrough(new TextLineStream())
-      .pipeTo(new WritableStream({ write (chunk, _) {
-        console.log(`[${name}] [stderr]: ${chunk}`)
-      } }))
-
+    this.pipe(this.process.stdout, "stdout")
+    this.pipe(this.process.stderr, "stderr")
     return true
   }
 
-  stop () {
+  async stop () {
     console.log('Stopping:', this.name)
     if (!this.process) {
       console.log('Already stopped:', this.name)
@@ -126,9 +124,16 @@ class Service {
     }
     const { pid } = this.process
     this.process.kill()
-    this.process = null
+    await this.process.status
     console.log('Stopped:', this.name, 'at PID:', pid)
     return true
+  }
+
+  pipe (stream, kind) {
+    const write = (chunk, _) => console.log(`[${this.name}] [${kind}]: ${chunk}`)
+    stream
+      .pipeThrough(new TextDecoderStream())
+      .pipeTo(new WritableStream({ write }))
   }
 
 }

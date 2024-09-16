@@ -14,8 +14,8 @@ function main () {
 
   // Define services.
   const services = {
-    node:  new Service('Namada fullnode', 'namada', 'node', 'ledger', 'run'),
-    proxy: new Service('TCP proxy', 'simpleproxy', 'v', '-L', LOCAL, '-R', REMOTE)
+    node:  new NamadaService(),
+    proxy: new SimpleProxyService(),
   }
 
   // Define routes.
@@ -88,6 +88,7 @@ class Service {
   }
 
   process = null
+  signal  = 'SIGTERM'
 
   get status () {
     return !!this.process
@@ -123,7 +124,7 @@ class Service {
       return false
     }
     const { pid } = this.process
-    this.process.kill()
+    this.process.kill(this.signal)
     await this.process.status
     console.log('Stopped:', this.name, 'at PID:', pid)
     return true
@@ -138,4 +139,15 @@ class Service {
 
 }
 
-if (import.meta.main) main()
+class NamadaService extends Service {
+  constructor () {
+    super('Namada fullnode', 'namada', 'node', 'ledger', 'run')
+  }
+}
+
+class SimpleProxyService extends Service {
+  constructor () {
+    super('TCP proxy', 'simpleproxy', 'v', '-L', LOCAL, '-R', REMOTE)
+    this.signal = 'SIGKILL'
+  }
+}

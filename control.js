@@ -152,10 +152,12 @@ class Service {
   }
 
   pipe (stream, kind) {
-    const write = (chunk, _) => this.muted || console.log(`[${this.name}] [${kind}]: ${chunk}`)
     stream
       .pipeThrough(new TextDecoderStream())
-      .pipeTo(new WritableStream({ write }))
+      .pipeThrough(new TextLineStream())
+      .pipeTo(new WritableStream({ write: (chunk, _) => {
+        this.muted || console.log(`[${this.name}] [${kind}]: ${chunk}`)
+      }}))
   }
 
 }
@@ -163,7 +165,21 @@ class Service {
 class NamadaService extends Service {
   constructor () {
     super('Namada fullnode', 'namada', 'node', 'ledger', 'run')
+    this.regex = new RegExp('Block height: (\\d+).+epoch: (\\d+)', 'g')
     this.start()
+  }
+
+  pipe (stream, kind) {
+    stream
+      .pipeThrough(new TextDecoderStream())
+      .pipeThrough(new TextLineStream())
+      .pipeTo(new WritableStream({ write: (chunk, _) => {
+        if (!this.muted) console.log(`[${this.name}] [${kind}]: ${chunk}`)
+        if (chunk.match(this.regex)) {
+          const [block, epoch] = chunk.slice(1)
+          console.log({block, epoch})
+        }
+      } }))
   }
 }
 

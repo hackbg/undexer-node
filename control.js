@@ -103,14 +103,12 @@ class Service {
     this.process = new Deno.Command(this.command, options).spawn()
     console.log('Started:', this.name, 'at PID:', this.process.pid)
 
-    //const transform = (chunk, controller) => { controller.enqueue(`${this.name}: ${chunk}`) }
-
+    // Write service stdout and stderr to host stdout
     this.process.stdout
       .pipeThrough(new TextLineStream())
       .pipeTo(new WritableStream({ write (chunk, _) {
         console.log(`[${name}] [stderr]: ${chunk}`)
       } }))
-
     this.process.stderr
       .pipeThrough(new TextLineStream())
       .pipeTo(new WritableStream({ write (chunk, _) {

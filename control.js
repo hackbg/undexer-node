@@ -26,15 +26,26 @@ function main () {
     proxy: new SimpleProxyService(PROXY, LOCAL, REMOTE),
   }
 
+  // Create the service manager.
+  const server = new ServiceManager(services)
+
+  // Add the websocket endpoint.
+  server.routes.push(['/ws', (req) => {
+    // TODO
+  }])
+
   // Run the service manager:
-  new ServiceManager(services).listen({ host: CONTROL_HOST, port: CONTROL_PORT }, () => ({
-    config: { LOCAL, REMOTE },
-    services: {
-      proxy: services.proxy.status,
-      node:  services.node.status
-    },
-    commands: routes.map(route=>route[0])
-  }))
+  server.listen({ host: CONTROL_HOST, port: CONTROL_PORT }, getInfo)
+  function getInfo () {
+    return {
+      config: { LOCAL, REMOTE },
+      services: {
+        proxy: services.proxy.status,
+        node:  services.node.status
+      },
+      commands: server.routes.map(route=>route[0])
+    }
+  }
 
 }
 
@@ -44,11 +55,11 @@ class ServiceManager {
     this.services = services
     // Define routes from services
     this.routes = []
-    for (const service of Object.keys(services)) {
-      this.routes.push([`/${service}/start`,  () => service.start()])
-      this.routes.push([`/${service}/stop`,   () => service.stop()])
-      this.routes.push([`/${service}/mute`,   () => service.mute()])
-      this.routes.push([`/${service}/unmute`, () => service.unmute()])
+    for (const [id, service] of Object.entries(services)) {
+      this.routes.push([`/${id}/start`,  () => service.start()])
+      this.routes.push([`/${id}/stop`,   () => service.stop()])
+      this.routes.push([`/${id}/mute`,   () => service.mute()])
+      this.routes.push([`/${id}/unmute`, () => service.unmute()])
     }
   }
 
@@ -64,7 +75,7 @@ class ServiceManager {
         while (pathname.endsWith('/')) pathname = pathname.slice(0, pathname.length - 1)
 
         // Route request to service
-        for (const [route, handler] of routes) {
+        for (const [route, handler] of this.routes) {
           if (route === pathname) {
             await Promise.resolve(handler())
             return redirect('/')

@@ -5,31 +5,75 @@ const REMOTE       = Deno.env.get("REMOTE")       || "165.227.42.204:26656"
 const CONTROL_HOST = Deno.env.get("CONTROL_HOST") || "127.0.0.1"
 const CONTROL_PORT = Deno.env.get("CONTROL_PORT") || "25555"
 
-let node  = null
-let proxy = null
+class Service {
+  constructor (name, command, ...args) {
+    this.name    = name
+    this.command = command
+    this.args    = args
+  }
+  process = null
+  get status () {
+    return !!this.process
+  }
+  start () {
+    console.log('Starting:', this.name)
+    if (this.process) {
+      console.log('Already started:', this.name)
+      return false
+    }
+    const options = { args: this.args, stdout: 'piped', stderr: 'piped' }
+    this.process = new Deno.Command(this.command, options).spawn()
+    console.log('Started:', this.name, 'at PID:', this.process.pid)
+    this.process.stdout.pipeTo(Deno.stdout.writable, { preventClose: true })
+    this.process.stderr.pipeTo(Deno.stderr.writable, { preventClose: true })
+    return true
+  }
+  stop () {
+    console.log('Stopping:', this.name)
+    if (this.process) {
+      const { pid } = this.process
+      this.process.kill()
+      this.process = null
+      console.log('Stopped:', this.name, 'at PID:', pid)
+      return true
+    }
+    console.log('Already stopped:', this.name)
+    return false
+  }
+}
+
+const services = {
+  node:  new Service('Namada fullnode', 'namada', 'node', 'ledger', 'run'),
+  proxy: new Service('TCP proxy', 'simpleproxy', "-L", LOCAL, "-R", REMOTE)
+}
+const routes = []
+for (const service of Object.keys(services)) {
+  routes.push(`/${service}/start`)
+  routes.push(`/${service}/stop`)
+}
 
 Deno.serve({ host: CONTROL_HOST, port: CONTROL_PORT }, (req) => {
   try {
     const info = {
       config:   { LOCAL, REMOTE },
-      services: { proxy: !!proxy, node: !!node },
-      commands: [ "/proxy/start", "/proxy/stop", "/node/start", "/node/stop", ]
+      services: { proxy: services.proxy.status, node: services.node.status },
+      commands: routes
     }
     let { pathname } = new URL(req.url)
     while (pathname.endsWith('/')) pathname = pathname.slice(0, pathname.length - 1)
     switch (pathname) {
       case '/node/start':
-        startNode()
-        return respond(202, info)
+        services.node.start()
+        return redirect('/')
       case '/node/stop':
-        stopNode()
-        return respond(202, info)
+        services.node.stop()
+        return redirect('/')
       case '/proxy/start':
-        startProxy()
-        return respond(202, info)
+        services.proxy.start()
+        return redirect('/')
       case '/proxy/stop':
-        stopProxy()
-        return respond(202, info)
+        services.proxy.stop()
+        return redirect('/')
       case '/':
         return respond(200, info)
       default:
@@ -39,50 +83,14 @@ Deno.serve({ host: CONTROL_HOST, port: CONTROL_PORT }, (req) => {
     console.error(e)
     return respond(500, { error: e.message||e })
   }
+
+  function redirect (pathname) {
+    const url = new URL(req.url)
+    url.pathname = pathname
+    return Response.redirect(url)
+  }
+  function respond (status, data) {
+    const headers = { "content-type": "application/json" }
+    return new Response(JSON.stringify(data, null, 2), { status, headers })
+  }
 })
-
-function respond (status, data) {
-  const headers = { "content-type": "application/json" }
-  return new Response(JSON.stringify(data, null, 2), { status, headers })
-}
-
-function startProxy () {
-  if (proxy) {
-    console.log('Proxy already running.')
-    return
-  }
-  const options = { args: [ "-L", LOCAL, "-R", REMOTE ], stdout: 'piped', stderr: 'piped' }
-  proxy = new Deno.Command("simpleproxy", options).spawn()
-  console.log('Proxying', LOCAL, '->', REMOTE)
-  proxy.stdout.pipeTo(Deno.stdout.writable)
-  proxy.stderr.pipeTo(Deno.stderr.writable)
-}
-
-function stopProxy () {
-  if (proxy) {
-    const { pid } = proxy
-    proxy.kill()
-    proxy = null
-    console.log('Stopped proxy', pid)
-  }
-  console.log('Proxy already stopped.')
-}
-
-function startNode () {
-  if (node) {
-    console.log('Node already running.')
-    return
-  }
-  const options = { args: [ "node", "ledger", "run" ] }
-  node = new Deno.Command('namada', options)
-}
-
-function stopNode () {
-  if (node) {
-    const { pid } = node
-    node.kill()
-    node = null
-    console.log('Stopped node', pid)
-  }
-  console.log('Node already stopped.')
-}

@@ -164,8 +164,8 @@ class Service {
 
 class NamadaService extends Service {
   constructor () {
-    super('Namada fullnode', 'namada', 'node', 'ledger', 'run')
-    this.regex = new RegExp('Block height: (\\d+).+epoch: (\\d+)', 'g')
+    super('Namada', 'namada', 'node', 'ledger', 'run')
+    this.regex = new RegExp('Block height: (\\d+).+epoch: (\\d+)')
     this.start()
   }
 
@@ -178,7 +178,6 @@ class NamadaService extends Service {
         const match = chunk.match(this.regex)
         if (match) {
           const [block, epoch] = match.slice(1)
-          console.log(match)
           console.log({block, epoch})
         }
       } }))
@@ -187,7 +186,7 @@ class NamadaService extends Service {
 
 class SimpleProxyService extends Service {
   constructor (local, remote) {
-    super('TCP proxy', 'simpleproxy', '-v', '-L', local, '-R', remote)
+    super('Proxy ', 'simpleproxy', '-v', '-L', local, '-R', remote)
     this.signal = 'SIGKILL'
   }
 

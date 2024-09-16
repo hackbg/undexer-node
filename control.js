@@ -160,7 +160,7 @@ class Service {
       .pipeThrough(new TextDecoderStream())
       .pipeThrough(new TextLineStream())
       .pipeTo(new WritableStream({ write: (chunk, _) => {
-        this.muted || console.log(`[${this.name}] [${kind}]: ${chunk}`)
+        this.muted || console.log(`:: ${this.name} :: ${kind} :: ${chunk}`)
       }}))
   }
 
@@ -178,7 +178,7 @@ class NamadaService extends Service {
       .pipeThrough(new TextDecoderStream())
       .pipeThrough(new TextLineStream())
       .pipeTo(new WritableStream({ write: (chunk, _) => {
-        if (!this.muted) console.log(`[${this.name}] [${kind}]: ${chunk}`)
+        if (!this.muted) console.log(`:: ${this.name} :: ${kind} :: ${chunk}`)
         const match = chunk.match(this.regex)
         if (match) {
           const [block, epoch] = match.slice(1)

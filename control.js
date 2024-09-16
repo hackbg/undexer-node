@@ -1,96 +1,99 @@
-#!/usr/bin/env -S deno run --allow-net --allow-run=namada,simpleproxy,pkill --allow-env=LOCAL,REMOTE,CONTROL_HOST,CONTROL_PORT
+#!/usr/bin/env -S deno run --allow-net --allow-run=namada,simpleproxy,pkill --allow-env=NAMADA,LOCAL,REMOTE,CONTROL_HOST,CONTROL_PORT
 
 import { TextLineStream } from "./deps.js"
 
-function main () {
-  // Exit cleanly on Ctrl-C (otherwise container just detaches)
-  Deno.addSignalListener("SIGINT", () => Deno.exit())
 
-  // Read configuration from environment.
+function main () {
+
+  // Global environment configuration
+  const NAMADA       = Deno.env.get("NAMADA")       || "namada"
+  const PROXY        = Deno.env.get("PROXY")        || "simpleproxy"
   const LOCAL        = Deno.env.get("LOCAL")        || ":26666"
   const REMOTE       = Deno.env.get("REMOTE")       || "165.227.42.204:26656"
   const CONTROL_HOST = Deno.env.get("CONTROL_HOST") || "127.0.0.1"
   const CONTROL_PORT = Deno.env.get("CONTROL_PORT") || "25555"
 
-  // Define services.
+  // Exit cleanly on Ctrl-C (otherwise container just detaches)
+  Deno.addSignalListener("SIGINT", () => Deno.exit())
+
+  // Define the services
   const services = {
-    node:  new NamadaService(),
-    proxy: new SimpleProxyService(LOCAL, REMOTE),
+    node:  new NamadaService(NAMADA),
+    proxy: new SimpleProxyService(PROXY, LOCAL, REMOTE),
   }
 
-  // Define routes.
-  // TODO: define full route map here and not just list of route names
-  const routes = []
-  for (const service of Object.keys(services)) {
-    routes.push(`/${service}/start`)
-    routes.push(`/${service}/stop`)
-    routes.push(`/${service}/mute`)
-    routes.push(`/${service}/unmute`)
+  // Run the service manager:
+  new ServiceManager(services).listen({ host: CONTROL_HOST, port: CONTROL_PORT }, () => ({
+    config: { LOCAL, REMOTE },
+    services: {
+      proxy: services.proxy.status,
+      node:  services.node.status
+    },
+    commands: routes.map(route=>route[0])
+  }))
+
+}
+
+class ServiceManager {
+
+  constructor (services) {
+    this.services = services
+    // Define routes from services
+    this.routes = []
+    for (const service of Object.keys(services)) {
+      this.routes.push([`/${service}/start`,  () => service.start()])
+      this.routes.push([`/${service}/stop`,   () => service.stop()])
+      this.routes.push([`/${service}/mute`,   () => service.mute()])
+      this.routes.push([`/${service}/unmute`, () => service.unmute()])
+    }
   }
 
-  // Run service
-  Deno.serve({ host: CONTROL_HOST, port: CONTROL_PORT }, async (req) => {
-    try {
-      // Service status
-      const info = {
-        config:   { LOCAL, REMOTE },
-        services: { proxy: services.proxy.status, node: services.node.status },
-        commands: routes
+  listen (config, getInfo) {
+    // Run service
+    Deno.serve(config, async (req) => {
+      try {
+        // Service status
+        const info = getInfo()
+
+        // Trim trailing slashes
+        let { pathname } = new URL(req.url)
+        while (pathname.endsWith('/')) pathname = pathname.slice(0, pathname.length - 1)
+
+        // Route request to service
+        for (const [route, handler] of routes) {
+          if (route === pathname) {
+            await Promise.resolve(handler())
+            return redirect('/')
+          }
+        }
+
+        // Default routes
+        switch (pathname) {
+          case '': return respond(200, info)
+          default: return respond(404, { error: 'not found' })
+        }
+
+      } catch (e) {
+        // Error handler
+        console.error(e)
+        return respond(500, { error: e.message||e })
       }
 
-      // Trim trailing slashes
-      let { pathname } = new URL(req.url)
-      while (pathname.endsWith('/')) pathname = pathname.slice(0, pathname.length - 1)
-
-      // Route requests
-      switch (pathname) {
-        case '/node/start':
-          services.node.start()
-          return redirect('/')
-        case '/node/stop':
-          await services.node.stop()
-          return redirect('/')
-        case '/node/mute':
-          services.node.mute()
-          return redirect('/')
-        case '/node/unmute':
-          services.node.unmute()
-          return redirect('/')
-        case '/proxy/start':
-          services.proxy.start()
-          return redirect('/')
-        case '/proxy/stop':
-          await services.proxy.stop()
-          return redirect('/')
-        case '/proxy/mute':
-          services.proxy.mute()
-          return redirect('/')
-        case '/proxy/unmute':
-          services.proxy.unmute()
-          return redirect('/')
-        case '':
-          return respond(200, info)
-        default:
-          return respond(404, { error: 'not found' })
+      // Return a redirect to another path on the same host
+      function redirect (pathname) {
+        const url = new URL(req.url)
+        url.pathname = pathname
+        return Response.redirect(url)
       }
 
-    } catch (e) {
-      console.error(e)
-      return respond(500, { error: e.message||e })
-    }
+      // Respond with JSON data
+      function respond (status, data) {
+        const headers = { "content-type": "application/json" }
+        return new Response(JSON.stringify(data, null, 2), { status, headers })
+      }
 
-    function redirect (pathname) {
-      const url = new URL(req.url)
-      url.pathname = pathname
-      return Response.redirect(url)
-    }
-
-    function respond (status, data) {
-      const headers = { "content-type": "application/json" }
-      return new Response(JSON.stringify(data, null, 2), { status, headers })
-    }
-
-  })
+    })
+  }
 }
 
 class Service {
@@ -101,6 +104,7 @@ class Service {
     this.args    = args
     this.process = null
     this.signal  = 'SIGTERM'
+    this.muted   = false
   }
 
   get status () {
@@ -163,8 +167,8 @@ class Service {
 }
 
 class NamadaService extends Service {
-  constructor () {
-    super('Namada', 'namada', 'node', 'ledger', 'run')
+  constructor (namada = 'namada') {
+    super('Namada', namada, 'node', 'ledger', 'run')
     this.regex = new RegExp('Block height: (\\d+).+epoch: (\\d+)')
     this.start()
   }
@@ -185,9 +189,10 @@ class NamadaService extends Service {
 }
 
 class SimpleProxyService extends Service {
-  constructor (local, remote) {
-    super('Proxy ', 'simpleproxy', '-v', '-L', local, '-R', remote)
+  constructor (proxy = 'simpleproxy', local, remote) {
+    super('Proxy ', proxy, '-v', '-L', local, '-R', remote)
     this.signal = 'SIGKILL'
+    this.start()
   }
 
   async stop () {

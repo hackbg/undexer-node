@@ -19,5 +19,5 @@ ENV CONFIG_DIR=$DATA_DIR/config.toml
 RUN namadac utils join-network --chain-id $CHAIN_ID --wasm-dir $WASM_DIR
 RUN sed -i 's#persistent_peers = ".*"#persistent_peers = "tcp://d6691dc866be3de0be931d2018e8fdc6a564de20@localhost:26666"#' $CONFIG_DIR
 ADD control.js /control.js 
-ENTRYPOINT "/usr/local/bin/deno"
-CMD "/control.js"
+ENTRYPOINT [ "/bin/bash" ]
+CMD [ "-c", "/control.js" ]

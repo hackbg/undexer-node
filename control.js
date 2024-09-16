@@ -1,5 +1,10 @@
 #!/usr/bin/env -S deno run --allow-net --allow-run=namada,simpleproxy --allow-env=LOCAL,REMOTE,CONTROL_HOST,CONTROL_PORT
 
+Deno.addSignalListener("SIGINT", () => {
+  console.log("Sayonara!")
+  Deno.exit()
+})
+
 const LOCAL        = Deno.env.get("LOCAL")        || ":26666"
 const REMOTE       = Deno.env.get("REMOTE")       || "165.227.42.204:26656"
 const CONTROL_HOST = Deno.env.get("CONTROL_HOST") || "127.0.0.1"

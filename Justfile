@@ -7,6 +7,6 @@ default:
 pull:
   docker image pull "{{image}}:{{tag}}"
 run:
-  docker run --network=host "{{image}}:{{tag}}"
+  docker run -i --network=host "{{image}}:{{tag}}"
 shell:
   docker run -it --network=host "{{image}}:{{tag}}" --

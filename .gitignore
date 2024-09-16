@@ -1,0 +1,3 @@
+.state/namada/*
+.state/masp-params/*
+!.state/*/.gitkeep

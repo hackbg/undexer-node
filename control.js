@@ -1,6 +1,6 @@
 #!/usr/bin/env -S deno run --allow-net --allow-run=namada,simpleproxy --allow-env=LOCAL,REMOTE,CONTROL_HOST,CONTROL_PORT
 
-import { TextLineStream } from "@std/streams"
+import { TextLineStream } from "./deps.js"
 
 function main () {
   // Exit cleanly on Ctrl-C (otherwise container just detaches)

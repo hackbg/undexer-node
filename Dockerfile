@@ -21,8 +21,8 @@ RUN namadac utils join-network --chain-id $CHAIN_ID --wasm-dir $WASM_DIR
 RUN sed -i 's#persistent_peers = ".*"#persistent_peers = "tcp://d6691dc866be3de0be931d2018e8fdc6a564de20@localhost:26666"#' $CONFIG_DIR
 
 # Install control script
-ADD deno.json deno.lock /
-RUN deno cache control.js
+ADD deno.json deno.lock deps.js /
+RUN deno cache --import-map=/deno.json --lock=/deno.lock deps.js
 ADD control.js /control.js 
 ENTRYPOINT [ "/bin/bash" ]
 CMD [ "-c", "/control.js" ]

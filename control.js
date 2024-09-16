@@ -24,6 +24,8 @@ function main () {
   for (const service of Object.keys(services)) {
     routes.push(`/${service}/start`)
     routes.push(`/${service}/stop`)
+    routes.push(`/${service}/mute`)
+    routes.push(`/${service}/unmute`)
   }
 
   // Run service
@@ -48,11 +50,23 @@ function main () {
         case '/node/stop':
           await services.node.stop()
           return redirect('/')
+        case '/node/mute':
+          services.node.mute()
+          return redirect('/')
+        case '/node/unmute':
+          services.node.unmute()
+          return redirect('/')
         case '/proxy/start':
           services.proxy.start()
           return redirect('/')
         case '/proxy/stop':
           await services.proxy.stop()
+          return redirect('/')
+        case '/proxy/mute':
+          services.proxy.mute()
+          return redirect('/')
+        case '/proxy/unmute':
+          services.proxy.unmute()
           return redirect('/')
         case '':
           return respond(200, info)
@@ -85,10 +99,9 @@ class Service {
     this.name    = name
     this.command = command
     this.args    = args
+    this.process = null
+    this.signal  = 'SIGTERM'
   }
-
-  process = null
-  signal  = 'SIGTERM'
 
   get status () {
     return !!this.process
@@ -130,8 +143,16 @@ class Service {
     return true
   }
 
+  mute () {
+    this.muted = true
+  }
+
+  unmute () {
+    this.muted = false
+  }
+
   pipe (stream, kind) {
-    const write = (chunk, _) => console.log(`[${this.name}] [${kind}]: ${chunk}`)
+    const write = (chunk, _) => this.muted || console.log(`[${this.name}] [${kind}]: ${chunk}`)
     stream
       .pipeThrough(new TextDecoderStream())
       .pipeTo(new WritableStream({ write }))
@@ -142,6 +163,7 @@ class Service {
 class NamadaService extends Service {
   constructor () {
     super('Namada fullnode', 'namada', 'node', 'ledger', 'run')
+    this.start()
   }
 }
 

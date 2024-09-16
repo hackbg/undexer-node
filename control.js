@@ -178,6 +178,7 @@ class NamadaService extends Service {
         const match = chunk.match(this.regex)
         if (match) {
           const [block, epoch] = match.slice(1)
+          console.log(match)
           console.log({block, epoch})
         }
       } }))

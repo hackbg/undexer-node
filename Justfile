@@ -1,7 +1,7 @@
 set shell := ["bash", "-c"]
-image := "oci.hack.bg/namada"
-tag := `git rev-parse --abbrev-ref HEAD`
-config := "--init --rm -i --network=host -v ./.state/masp-params:/home/namada/.masp-params:rw"
+image     := "oci.hack.bg/namada"
+tag       := `git rev-parse --abbrev-ref HEAD`
+config    := "--init --rm -i --network=host -v ./.state/masp-params:/home/namada/.masp-params:rw"
 
 default:
   just -l

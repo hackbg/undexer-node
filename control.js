@@ -31,11 +31,24 @@ function main () {
 
   // Add the websocket endpoint.
   server.routes.push(['/ws', (req) => {
+    if (req.headers.get("upgrade") != "websocket") {
+      return new Response(null, { status: 400 })
+    }
+    const { socket, response } = Deno.upgradeWebSocket(req)
+    socket.addEventListener("open", () => {
+      console.log("client connected to websocket")
+    })
+    socket.addEventListener("message", (event) => {
+      console.log("message received over websocket", event.data)
+    })
+    return response
     // TODO
   }])
 
   // Run the service manager:
   server.listen({ host: CONTROL_HOST, port: CONTROL_PORT }, getInfo)
+
+  // This is the contents of the default response.
   function getInfo () {
     return {
       config: { LOCAL, REMOTE },
@@ -43,7 +56,7 @@ function main () {
         proxy: services.proxy.status,
         node:  services.node.status
       },
-      commands: server.routes.map(route=>route[0])
+      routes: server.routes.map(route=>route[0])
     }
   }
 
@@ -132,8 +145,13 @@ class Service {
       console.log('Already started:', this.name)
       return false
     }
+
     const options = { args: this.args, stdout: 'piped', stderr: 'piped' }
+
+    // Spawn child process
     this.process = new Deno.Command(this.command, options).spawn()
+
+    // Listen for process exit
     this.process.status.then(status=>{
       console.log(
         'Died:', this.name,
@@ -142,10 +160,13 @@ class Service {
       )
       this.process = null
     })
+
     console.log('Started:', this.name, 'at PID:', this.process.pid)
+
     // Write service stdout and stderr to host stdout
     this.pipe(this.process.stdout, "stdout")
     this.pipe(this.process.stderr, "stderr")
+
     return true
   }
 
@@ -155,6 +176,7 @@ class Service {
       console.log('Already stopped:', this.name)
       return false
     }
+
     const { pid } = this.process
     this.process.kill(this.signal)
     await this.process.status

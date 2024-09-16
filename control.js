@@ -151,3 +151,5 @@ class SimpleProxyService extends Service {
     this.signal = 'SIGKILL'
   }
 }
+
+if (import.meta.main) main()

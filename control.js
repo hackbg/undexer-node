@@ -169,7 +169,7 @@ class NamadaService extends Service {
 
 class SimpleProxyService extends Service {
   constructor (local, remote) {
-    super('TCP proxy', 'simpleproxy', 'v', '-L', local, '-R', remote)
+    super('TCP proxy', 'simpleproxy', '-v', '-L', local, '-R', remote)
     this.signal = 'SIGKILL'
   }
 }

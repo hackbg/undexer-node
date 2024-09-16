@@ -2,8 +2,9 @@
 
 import { TextLineStream } from "./deps.js"
 
-
 function main () {
+
+  const t0 = performance.now()
 
   // Global environment configuration
   const NAMADA       = Deno.env.get("NAMADA")       || "namada"
@@ -14,7 +15,10 @@ function main () {
   const CONTROL_PORT = Deno.env.get("CONTROL_PORT") || "25555"
 
   // Exit cleanly on Ctrl-C (otherwise container just detaches)
-  Deno.addSignalListener("SIGINT", () => Deno.exit())
+  Deno.addSignalListener("SIGINT", () => {
+    console.log('Ran for', ((performance.now() - t0)/1000).toFixed(3), 'seconds')
+    Deno.exit()
+  })
 
   // Define the services
   const services = {

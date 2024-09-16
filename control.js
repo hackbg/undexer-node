@@ -172,6 +172,20 @@ class SimpleProxyService extends Service {
     super('TCP proxy', 'simpleproxy', '-v', '-L', local, '-R', remote)
     this.signal = 'SIGKILL'
   }
+
+  async stop () {
+    console.log('Stopping:', this.name)
+    if (!this.process) {
+      console.log('Already stopped:', this.name)
+      return false
+    }
+    const { pid } = this.process
+    await new Deno.Command('pkill', { args: ['-P', pid] }).spawn().status
+    this.process.kill(this.signal)
+    await this.process.status
+    console.log('Stopped:', this.name, 'at PID:', pid)
+    return true
+  }
 }
 
 if (import.meta.main) main()

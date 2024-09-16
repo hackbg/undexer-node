@@ -36,13 +36,23 @@ function main () {
     }
     const { socket, response } = Deno.upgradeWebSocket(req)
     socket.addEventListener("open", () => {
+      services.node.events.addEventListener('synced', sendSynced)
       console.log("client connected to websocket")
+    })
+    socket.addEventListener("close", () => {
+      services.node.events.removeEventListener('synced', sendSynced)
+      console.log("client disconnected from websocket")
     })
     socket.addEventListener("message", (event) => {
       console.log("message received over websocket", event.data)
     })
     return response
-    // TODO
+
+    function sendSynced ({ detail }) {
+      if (socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({ synced: detail }))
+      }
+    }
   }])
 
   // Run the service manager:
@@ -69,10 +79,10 @@ class ServiceManager {
     // Define routes from services
     this.routes = []
     for (const [id, service] of Object.entries(services)) {
-      this.routes.push([`/${id}/start`,  () => service.start()])
-      this.routes.push([`/${id}/stop`,   () => service.stop()])
-      this.routes.push([`/${id}/mute`,   () => service.mute()])
-      this.routes.push([`/${id}/unmute`, () => service.unmute()])
+      this.routes.push([`/${id}/start`,  () => { service.start()  }])
+      this.routes.push([`/${id}/stop`,   () => { service.stop()   }])
+      this.routes.push([`/${id}/mute`,   () => { service.mute()   }])
+      this.routes.push([`/${id}/unmute`, () => { service.unmute() }])
     }
   }
 
@@ -90,8 +100,7 @@ class ServiceManager {
         // Route request to service
         for (const [route, handler] of this.routes) {
           if (route === pathname) {
-            await Promise.resolve(handler())
-            return redirect('/')
+            return await Promise.resolve(handler(req)) || redirect('/')
           }
         }
 
@@ -206,7 +215,8 @@ class Service {
 class NamadaService extends Service {
   constructor (namada = 'namada') {
     super('Namada', namada, 'node', 'ledger', 'run')
-    this.regex = new RegExp('Block height: (\\d+).+epoch: (\\d+)')
+    this.regex  = new RegExp('Block height: (\\d+).+epoch: (\\d+)')
+    this.events = new EventTarget()
     this.start()
   }
 
@@ -219,7 +229,8 @@ class NamadaService extends Service {
         const match = chunk.match(this.regex)
         if (match) {
           const [block, epoch] = match.slice(1)
-          console.log({block, epoch})
+          console.log({ synced: { block, epoch } })
+          this.events.dispatchEvent(new SyncEvent({ block, epoch }))
         }
       } }))
   }
@@ -242,6 +253,12 @@ class SimpleProxyService extends Service {
     await new Deno.Command('pkill', { args: ['-9', 'simpleproxy'] }).spawn().status
     console.log('Stopped:', this.name, 'at PID:', pid)
     return true
+  }
+}
+
+class SyncEvent extends CustomEvent {
+  constructor (detail) {
+    super('synced', { detail })
   }
 }
 

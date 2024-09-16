@@ -7,8 +7,8 @@ default:
 pull:
   docker image pull "{{image}}:{{tag}}"
 run:
-  docker run --rm -i --network=host "{{image}}:{{tag}}"
+  docker run --init --rm -i --network=host -v  "{{image}}:{{tag}}"
 shell:
-  docker run --rm -it --network=host "{{image}}:{{tag}}" --
+  docker run --init --rm -it --network=host "{{image}}:{{tag}}" --
 root:
-  docker run --rm -itu 0 --network=host "{{image}}:{{tag}}" --
+  docker run --init --rm -itu 0 --network=host "{{image}}:{{tag}}" --

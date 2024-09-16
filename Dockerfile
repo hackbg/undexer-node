@@ -16,9 +16,8 @@ ENV CHAIN_ID="housefire-head.a03c8e8948ed20b"
 ENV DATA_DIR=/home/namada/.local/share/namada/$CHAIN_ID
 ENV WASM_DIR=$DATA_DIR/wasm
 ENV CONFIG_DIR=$DATA_DIR/config.toml
-
 RUN namadac utils join-network --chain-id $CHAIN_ID --wasm-dir $WASM_DIR
-
 RUN sed -i 's#persistent_peers = ".*"#persistent_peers = "tcp://d6691dc866be3de0be931d2018e8fdc6a564de20@localhost:26666"#' $CONFIG_DIR
-
-CMD ["node","ledger","run"]
+ADD control.js /control.js 
+ENTRYPOINT "/usr/local/bin/deno"
+CMD "/control.js"

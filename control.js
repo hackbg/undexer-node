@@ -175,8 +175,9 @@ class NamadaService extends Service {
       .pipeThrough(new TextLineStream())
       .pipeTo(new WritableStream({ write: (chunk, _) => {
         if (!this.muted) console.log(`[${this.name}] [${kind}]: ${chunk}`)
-        if (chunk.match(this.regex)) {
-          const [block, epoch] = chunk.slice(1)
+        const match = chunk.match(this.regex)
+        if (match) {
+          const [block, epoch] = match.slice(1)
           console.log({block, epoch})
         }
       } }))

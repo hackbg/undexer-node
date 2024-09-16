@@ -15,7 +15,7 @@ function main () {
   // Define services.
   const services = {
     node:  new NamadaService(),
-    proxy: new SimpleProxyService(),
+    proxy: new SimpleProxyService(LOCAL, REMOTE),
   }
 
   // Define routes.
@@ -146,8 +146,8 @@ class NamadaService extends Service {
 }
 
 class SimpleProxyService extends Service {
-  constructor () {
-    super('TCP proxy', 'simpleproxy', 'v', '-L', LOCAL, '-R', REMOTE)
+  constructor (local, remote) {
+    super('TCP proxy', 'simpleproxy', 'v', '-L', local, '-R', remote)
     this.signal = 'SIGKILL'
   }
 }

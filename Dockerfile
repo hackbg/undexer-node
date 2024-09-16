@@ -1,7 +1,13 @@
 FROM ghcr.io/anoma/namada:v0.43.0 AS namada
 
 USER root
-RUN apt update && apt install -y vim curl wget
+RUN apt update \
+ && apt install -y vim curl wget unzip 
+RUN cd /tmp \
+ && wget https://github.com/denoland/deno/releases/download/v1.46.3/deno-x86_64-unknown-linux-gnu.zip \
+ && unzip deno-x86_64-unknown-linux-gnu.zip \
+ && mv deno /usr/local/bin \
+ && rm deno-x86_64-unknown-linux-gnu.zip
 
 USER namada
 

@@ -7,6 +7,8 @@ default:
   just -l
 pull:
   docker image pull "{{image}}:{{tag}}"
+dev:
+  docker run {{config}} -v ./control.js:/control.js:ro {{image}}:{{tag}}
 run:
   docker run {{config}} {{image}}:{{tag}}
 shell:

@@ -198,8 +198,6 @@ class SimpleProxyService extends Service {
     }
     const { pid } = this.process
     await new Deno.Command('pkill', { args: ['-9', 'simpleproxy'] }).spawn().status
-    this.process.kill(this.signal)
-    await this.process.status
     console.log('Stopped:', this.name, 'at PID:', pid)
     return true
   }

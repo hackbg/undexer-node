@@ -1,4 +1,4 @@
-#!/usr/bin/env -S deno run --allow-net --allow-run=namada,simpleproxy,pkill --allow-env=NAMADA,LOCAL,REMOTE,CONTROL_HOST,CONTROL_PORT,NAMADA,PROXY
+#!/usr/bin/env -S deno run --allow-net --allow-run=namada,simpleproxy,pkill --allow-env=NAMADA,LOCAL,REMOTE,CONTROL_HOST,CONTROL_PORT,NAMADA,PROXY,AUTO_STOP
 
 import { TextLineStream } from "./deps.js"
 
@@ -7,12 +7,13 @@ function main () {
   const t0 = performance.now()
 
   // Global environment configuration
-  const NAMADA       = Deno.env.get("NAMADA")       || "namada"
-  const PROXY        = Deno.env.get("PROXY")        || "simpleproxy"
-  const LOCAL        = Deno.env.get("LOCAL")        || ":26666"
-  const REMOTE       = Deno.env.get("REMOTE")       || "165.227.42.204:26656"
-  const CONTROL_HOST = Deno.env.get("CONTROL_HOST") || "127.0.0.1"
-  const CONTROL_PORT = Deno.env.get("CONTROL_PORT") || "25555"
+  const NAMADA       = Deno.env.get("NAMADA")       ?? "namada"
+  const PROXY        = Deno.env.get("PROXY")        ?? "simpleproxy"
+  const LOCAL        = Deno.env.get("LOCAL")        ?? ":26666"
+  const REMOTE       = Deno.env.get("REMOTE")       ?? "165.227.42.204:26656"
+  const CONTROL_HOST = Deno.env.get("CONTROL_HOST") ?? "127.0.0.1"
+  const CONTROL_PORT = Deno.env.get("CONTROL_PORT") ?? "25555"
+  const AUTO_STOP    = Boolean(Deno.env.get("AUTO_STOP") ?? true)
 
   // Exit cleanly on Ctrl-C (otherwise container just detaches)
   Deno.addSignalListener("SIGINT", () => {
@@ -26,6 +27,20 @@ function main () {
     proxy: new SimpleProxyService(PROXY, LOCAL, REMOTE),
   }
 
+  // If AUTO_STOP is enabled, proxy is disconnected every time the epoch increments.
+  // The indexer must then send /proxy/start to reenable node syncing.
+  if (AUTO_STOP) {
+    let currentEpoch = 0n
+    services.node.events.addEventListener('synced', async ({ detail: { epoch } }) => {
+      epoch = BigInt(epoch)
+      if (epoch > currentEpoch) {
+        console.log('\nEpoch has increased. Pausing until indexer catches up.\n')
+        await services.proxy.stop()
+        currentEpoch = epoch
+      }
+    })
+  }
+
   // Create the service manager.
   const server = new ServiceManager(services)
 
@@ -36,11 +51,11 @@ function main () {
     }
     const { socket, response } = Deno.upgradeWebSocket(req)
     socket.addEventListener("open", () => {
-      services.node.events.addEventListener('synced', sendSynced)
+      services.node.events.addEventListener('synced', send)
       console.log("client connected to websocket")
     })
     socket.addEventListener("close", () => {
-      services.node.events.removeEventListener('synced', sendSynced)
+      services.node.events.removeEventListener('synced', send)
       console.log("client disconnected from websocket")
     })
     socket.addEventListener("message", (event) => {
@@ -48,27 +63,25 @@ function main () {
     })
     return response
 
-    function sendSynced ({ detail }) {
+    function send ({ type, detail }) {
       if (socket.readyState === WebSocket.OPEN) {
-        socket.send(JSON.stringify({ synced: detail }))
+        socket.send(JSON.stringify({ [type]: detail }))
       }
     }
   }])
 
   // Run the service manager:
-  server.listen({ host: CONTROL_HOST, port: CONTROL_PORT }, getInfo)
-
-  // This is the contents of the default response.
-  function getInfo () {
-    return {
-      config: { LOCAL, REMOTE },
-      services: {
-        proxy: services.proxy.status,
-        node:  services.node.status
-      },
-      routes: server.routes.map(route=>route[0])
-    }
-  }
+  server.listen({
+    host: CONTROL_HOST,
+    port: CONTROL_PORT,
+  }, () => ({
+    config: { LOCAL, REMOTE },
+    services: {
+      proxy: services.proxy.status,
+      node:  services.node.status
+    },
+    routes: server.routes.map(route=>route[0])
+  }))
 
 }
 

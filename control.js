@@ -60,6 +60,11 @@ function main () {
     })
     socket.addEventListener("message", (event) => {
       console.log("message received over websocket", event.data)
+      const data = JSON.parse(event.data)
+      if (data.resume) {
+        console.log('resuming sync...')
+        services.proxy.start()
+      }
     })
     return response
 

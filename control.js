@@ -1,4 +1,4 @@
-#!/usr/bin/env -S deno run --allow-net --allow-run=namada,simpleproxy,pkill --allow-env=NAMADA,LOCAL,REMOTE,CONTROL_HOST,CONTROL_PORT,NAMADA,PROXY,AUTO_STOP
+#!/usr/bin/env -S deno run --allow-net --allow-run=namada,simpleproxy,pkill --allow-env=NAMADA,LOCAL,REMOTE,CONTROL_HOST,CONTROL_PORT,NAMADA,PROXY,CHAIN_ID
 
 import { TextLineStream } from "./deps.js"
 import { ServiceManager, Service } from './lib.js'
@@ -14,7 +14,7 @@ function main () {
   const REMOTE       = Deno.env.get("REMOTE")       ?? "165.227.42.204:26656"
   const CONTROL_HOST = Deno.env.get("CONTROL_HOST") ?? "127.0.0.1"
   const CONTROL_PORT = Deno.env.get("CONTROL_PORT") ?? "25555"
-  const AUTO_STOP    = Boolean(Deno.env.get("AUTO_STOP") ?? true)
+  const CHAIN_ID     = Deno.env.get("CHAIN_ID")     ?? "housefire-head.a03c8e8948ed20b"
 
   // Exit cleanly on Ctrl-C (otherwise container just detaches)
   Deno.addSignalListener("SIGINT", () => {
@@ -24,23 +24,22 @@ function main () {
 
   // Define the services
   const services = {
-    node:  new NamadaService(NAMADA),
+    node:  new NamadaService(NAMADA, CHAIN_ID),
     proxy: new SimpleProxyService(PROXY, LOCAL, REMOTE),
   }
 
-  // If AUTO_STOP is enabled, proxy is disconnected every time the epoch increments.
-  // The indexer must then send /proxy/start to reenable node syncing.
-  if (AUTO_STOP) {
-    let currentEpoch = 0n
-    services.node.events.addEventListener('synced', async ({ detail: { epoch } }) => {
-      epoch = BigInt(epoch)
-      if (epoch > currentEpoch) {
-        console.log('\nEpoch has increased. Pausing until indexer catches up.\n')
-        await services.proxy.stop()
-        currentEpoch = epoch
-      }
-    })
-  }
+  // Every time the epoch increments, proxy disconnects and sync stops.
+  // The indexer must send HTTP /proxy/start or WS {"resume":{}} to continue
+  // once it's done with indexindg the current epoch.
+  let currentEpoch = 0n
+  services.node.events.addEventListener('synced', async ({ detail: { epoch } }) => {
+    epoch = BigInt(epoch)
+    if (epoch > currentEpoch) {
+      console.log('\nEpoch has increased. Pausing until indexer catches up.\n')
+      await services.proxy.stop()
+      currentEpoch = epoch
+    }
+  })
 
   // Create the service manager.
   const server = new ServiceManager(services)
@@ -59,9 +58,15 @@ function main () {
       services.node.events.removeEventListener('synced', send)
       console.log("client disconnected from websocket")
     })
-    socket.addEventListener("message", (event) => {
+    socket.addEventListener("message", async (event) => {
       console.log("message received over websocket", event.data)
       const data = JSON.parse(event.data)
+      if (data.reset) {
+        console.log('restarting sync from beginning...')
+        await services.node.stop()
+        await services.node.deleteData()
+        services.node.start()
+      }
       if (data.resume) {
         console.log('resuming sync...')
         services.proxy.start()
@@ -92,8 +97,9 @@ function main () {
 }
 
 class NamadaService extends Service {
-  constructor (namada = 'namada') {
+  constructor (namada = 'namada', chainId) {
     super('Namada', namada, 'node', 'ledger', 'run')
+    this.chainId = chainId
     this.regex  = new RegExp('Block height: (\\d+).+epoch: (\\d+)')
     this.events = new EventTarget()
     this.start()
@@ -111,6 +117,19 @@ class NamadaService extends Service {
           this.events.dispatchEvent(new SyncEvent({ block, epoch }))
         }
       } }))
+  }
+  /** Delete node state, allowing the sync to start from scratch.
+    * This is invoked by the indexer when it finds that it is more
+    * than 2 epochs ahead of the sync. */
+  async deleteData () {
+    await Promise.all([
+      `db`,
+      'tx_wasm_cache',
+      'vp_wasm_cache',
+      'cometbft'
+    ].map(path=>Deno.remove(`/home/namada/.local/share/namada/${this.chainId}/${path}`, {
+      recursive: true
+    })))
   }
 }
 

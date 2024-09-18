@@ -61,7 +61,7 @@ function main () {
     socket.addEventListener("message", async (event) => {
       console.log("message received over websocket", event.data)
       const data = JSON.parse(event.data)
-      if (data.reset) {
+      if (data.restart) {
         console.log('restarting sync from beginning...')
         await services.node.stop()
         await services.node.deleteData()
@@ -123,10 +123,7 @@ class NamadaService extends Service {
     * than 2 epochs ahead of the sync. */
   async deleteData () {
     await Promise.all([
-      `db`,
-      'tx_wasm_cache',
-      'vp_wasm_cache',
-      'cometbft'
+      `db`, 'tx_wasm_cache', 'vp_wasm_cache', 'cometbft'
     ].map(path=>Deno.remove(`/home/namada/.local/share/namada/${this.chainId}/${path}`, {
       recursive: true
     })))

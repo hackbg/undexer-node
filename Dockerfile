@@ -23,6 +23,6 @@ RUN sed -i 's#persistent_peers = ".*"#persistent_peers = "tcp://d6691dc866be3de0
 # Install control script
 ADD deno.json deno.lock deps.js /
 RUN deno cache --import-map=/deno.json --lock=/deno.lock deps.js
-ADD control.js /control.js 
+ADD control.js lib.js /
 ENTRYPOINT [ "/bin/bash" ]
 CMD [ "-c", "/control.js" ]

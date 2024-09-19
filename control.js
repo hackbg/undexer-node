@@ -123,9 +123,11 @@ class NamadaService extends Service {
     * than 2 epochs ahead of the sync. */
   async deleteData () {
     await Promise.all([
-      `db`, 'tx_wasm_cache', 'vp_wasm_cache', 'cometbft'
+      `db`, 'cometbft', 'tx_wasm_cache', 'vp_wasm_cache'
     ].map(path=>Deno.remove(`/home/namada/.local/share/namada/${this.chainId}/${path}`, {
       recursive: true
+    }).catch((e)=>{
+      console.warn(`Failed to remove ${path} (${e.message})`)
     })))
   }
 }

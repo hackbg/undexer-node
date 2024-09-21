@@ -113,7 +113,7 @@ class NamadaService extends Service {
         const match = chunk.match(this.regex)
         if (match) {
           const [block, epoch] = match.slice(1)
-          console.log({ synced: { block, epoch } })
+          console.log(` ✔  Sync: block ${block} of epoch ${epoch}`)
           this.events.dispatchEvent(new SyncEvent({ block, epoch }))
         }
       } }))

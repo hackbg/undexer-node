@@ -100,8 +100,8 @@ class NamadaService extends Service {
   constructor (namada = 'namada', chainId) {
     super('Namada', namada, 'node', 'ledger', 'run')
     this.chainId = chainId
-    this.regex  = new RegExp('Block height: (\\d+).+epoch: (\\d+)')
-    this.events = new EventTarget()
+    this.regex   = new RegExp('Block height: (\\d+).+epoch: (\\d+)')
+    this.events  = new EventTarget()
     this.start()
   }
   pipe (stream, kind) {

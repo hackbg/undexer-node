@@ -17,3 +17,5 @@ shell:
   docker run {{config}} -t {{image}}:{{tag}} --
 root:
   docker run {{config}} -tu 0 {{image}}:{{tag}} --
+deps:
+  deno cache deps.js

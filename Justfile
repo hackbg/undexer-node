@@ -5,6 +5,8 @@ config    := "--init --rm -i --network=host -v ./.state/masp-params:/home/namada
 
 default:
   just -l
+build:
+  docker build -t "{{image}}:{{tag}}" .
 pull:
   docker image pull "{{image}}:{{tag}}"
 dev:

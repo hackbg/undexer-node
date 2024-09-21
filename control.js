@@ -1,4 +1,4 @@
-#!/usr/bin/env -S deno run --allow-net --allow-run=namada,simpleproxy,pkill --allow-env=NAMADA,LOCAL,REMOTE,CONTROL_HOST,CONTROL_PORT,NAMADA,PROXY,CHAIN_ID --allow-write=/home/namada/.local/share/namada
+#!/usr/bin/env -S deno run --allow-net --allow-run=namada,simpleproxy,pkill --allow-env=NAMADA,PROXY,LOCAL,REMOTE,CONTROL_HOST,CONTROL_PORT,CHAIN_ID --allow-write=/home/namada/.local/share/namada
 
 import { TextLineStream } from "./deps.js"
 import { ServiceManager, Service } from './lib.js'

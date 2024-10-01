@@ -14,7 +14,7 @@ function main () {
   const REMOTE       = Deno.env.get("REMOTE")       ?? "165.227.42.204:26656"
   const CONTROL_HOST = Deno.env.get("CONTROL_HOST") ?? "127.0.0.1"
   const CONTROL_PORT = Deno.env.get("CONTROL_PORT") ?? "25555"
-  const CHAIN_ID     = Deno.env.get("CHAIN_ID")     ?? "housefire-head.a03c8e8948ed20b"
+  const CHAIN_ID     = Deno.env.get("CHAIN_ID")     ?? "housefire-reduce.e51ecf4264fc3"
 
   // Exit cleanly on Ctrl-C (otherwise container just detaches)
   Deno.addSignalListener("SIGINT", () => {

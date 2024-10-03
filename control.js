@@ -11,7 +11,7 @@ function main () {
   const NAMADA       = Deno.env.get("NAMADA")       ?? "namada"
   const PROXY        = Deno.env.get("PROXY")        ?? "simpleproxy"
   const LOCAL        = Deno.env.get("LOCAL")        ?? ":26666"
-  const REMOTE       = Deno.env.get("REMOTE")       ?? "165.227.42.204:26656"
+  const REMOTE       = Deno.env.get("REMOTE")       ?? "namada-peer-housefire.mandragora.io:26656"
   const CONTROL_HOST = Deno.env.get("CONTROL_HOST") ?? "127.0.0.1"
   const CONTROL_PORT = Deno.env.get("CONTROL_PORT") ?? "25555"
   const CHAIN_ID     = Deno.env.get("CHAIN_ID")     ?? "housefire-reduce.e51ecf4264fc3"

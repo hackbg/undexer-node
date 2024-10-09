@@ -35,7 +35,7 @@ function main () {
   services.node.events.addEventListener('synced', async ({ detail: { epoch } }) => {
     epoch = BigInt(epoch)
     if (epoch > currentEpoch) {
-      console.log('\nEpoch has increased. Pausing until indexer catches up.\n')
+      console.log('\n🟠 Epoch has increased. Pausing until indexer catches up.\n')
       await services.proxy.stop()
       currentEpoch = epoch
     }

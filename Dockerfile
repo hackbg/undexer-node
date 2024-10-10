@@ -3,7 +3,7 @@ FROM ghcr.io/anoma/namada:v0.44.0 AS namada
 # Install system dependencies
 USER root
 RUN apt update \
- && apt install -y vim curl wget unzip procps simpleproxy jq less
+ && apt install -y vim curl wget unzip procps simpleproxy jq less ping
 RUN cd /tmp \
  && wget https://github.com/denoland/deno/releases/download/v1.46.3/deno-x86_64-unknown-linux-gnu.zip \
  && unzip deno-x86_64-unknown-linux-gnu.zip \

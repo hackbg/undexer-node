@@ -1,55 +1,5 @@
 import { TextLineStream } from "./deps.js"
-
-export function initialize () {
-  // Launch timestamp
-  const t0 = performance.now()
-  // Exit cleanly on Ctrl-C (otherwise container just detaches)
-  Deno.addSignalListener("SIGINT", () => {
-    console.log('Ran for', ((performance.now() - t0)/1000).toFixed(3), 'seconds')
-    Deno.exit()
-  })
-
-  return t0
-}
-
-export function environment (vars) {
-  const result = {}
-  for (const [name, defaultValue] of Object.entries(vars)) {
-    result[name] = Deno.env.get(name) ?? defaultValue
-  }
-}
-
-export function api ({ host, port, routes = {} }) {
-  return Deno.serve({ host, port }, async req => {
-    let { pathname } = new URL(req.url)
-    while (pathname.endsWith('/')) pathname = pathname.slice(0, pathname.length - 1)
-    // Route request to service
-    for (const [route, handler] of routes) {
-      if (route === pathname) {
-        return await Promise.resolve(handler(req)) || redirect('/')
-      }
-    }
-    return respond(404, { error: 'not found' })
-    // Return a redirect to another path on the same host
-    function redirect (pathname) {
-      const url = new URL(req.url)
-      url.pathname = pathname
-      return Response.redirect(url)
-    }
-    // Respond with JSON data
-    function respond (status, data) {
-      const headers = { "content-type": "application/json" }
-      return new Response(JSON.stringify(data, null, 2), { status, headers })
-    }
-  })
-}
-
-export async function awaitObject (object) {
-  const results = {}
-  await Promise.all(Object.entries(object)
-    .map(([key, value])=>Promise.resolve(value).then(result=>results[key]=result)))
-  return results
-}
+import { Service } from './lib.js'
 
 export class ServiceManager {
   constructor (services) {
@@ -115,6 +65,12 @@ export class Service {
   get status () {
     return !!this.process
   }
+  async state () {
+    const cmd  = 'pgrep'
+    const args = [ '-x', this.command ]
+    const { success } = await new Deno.Command(cmd, { args }).spawn().status
+    return success
+  }
   start () {
     console.log('Starting:', this.name)
     if (this.process) {
@@ -139,7 +95,7 @@ export class Service {
     this.pipe(this.process.stderr, "stderr")
     return true
   }
-  async stop () {
+  async pause () {
     console.log('Stopping:', this.name)
     if (!this.process) {
       console.log('Already stopped:', this.name)
@@ -164,5 +120,66 @@ export class Service {
       .pipeTo(new WritableStream({ write: (chunk, _) => {
         this.muted || console.log(`:: ${this.name} :: ${kind} :: ${chunk}`)
       }}))
+  }
+}
+
+export class NamadaService extends Service {
+  constructor (namada = 'namada', chainId) {
+    super('Namada', namada, 'node', 'ledger', 'run')
+    this.chainId = chainId
+    this.regex   = new RegExp('Block height: (\\d+).+epoch: (\\d+)')
+    this.events  = new EventTarget()
+    this.start()
+  }
+  pipe (stream, kind) {
+    stream
+      .pipeThrough(new TextDecoderStream())
+      .pipeThrough(new TextLineStream())
+      .pipeTo(new WritableStream({ write: (chunk, _) => {
+        if (!this.muted) console.log(`:: ${this.name} :: ${kind} :: ${chunk}`)
+        const match = chunk.match(this.regex)
+        if (match) {
+          const [block, epoch] = match.slice(1)
+          console.log(` ✔  Sync: block ${block} of epoch ${epoch}`)
+          this.events.dispatchEvent(new SyncEvent({ block, epoch }))
+        }
+      } }))
+  }
+  /** Delete node state, allowing the sync to start from scratch.
+    * This is invoked by the indexer when it finds that it is more
+    * than 2 epochs ahead of the sync. */
+  async deleteData () {
+    await Promise.all([
+      `db`, 'cometbft', 'tx_wasm_cache', 'vp_wasm_cache'
+    ].map(path=>Deno.remove(`/home/namada/.local/share/namada/${this.chainId}/${path}`, {
+      recursive: true
+    }).catch((e)=>{
+      console.warn(`Failed to remove ${path} (${e.message})`)
+    })))
+  }
+}
+
+class SyncEvent extends CustomEvent {
+  constructor (detail) {
+    super('synced', { detail })
+  }
+}
+
+export class SimpleProxyService extends Service {
+  constructor (proxy = 'simpleproxy', local, remote) {
+    super('Proxy ', proxy, '-v', '-L', local, '-R', remote)
+    this.signal = 'SIGKILL'
+    this.start()
+  }
+  async stop () {
+    console.log('Stopping:', this.name)
+    if (!this.process) {
+      console.log('Already stopped:', this.name)
+      return false
+    }
+    const { pid } = this.process
+    await new Deno.Command('pkill', { args: ['-9', 'simpleproxy'] }).spawn().status
+    console.log('Stopped:', this.name, 'at PID:', pid)
+    return true
   }
 }

@@ -2,9 +2,10 @@
 
 This repo emits a container image that can run in **4 modes**.
 Running all 4 together in the setup described below results in
-a Namada node whose **syncing can be paused.** Together with Undexer,
-this allows for a Namada chain to be fully indexed - including the data
-that is pruned after 2 epochs (see [`anoma/namada#3810`](https://github.com/anoma/namada/issues/3810)).
+a Namada node whose **syncing can be paused.** While syncing is
+paused, Undexer can reliably index the historical data that would
+normally be pruned from the chain after 2 epochs, and is thus only
+available during sync (see [`anoma/namada#3810`](https://github.com/anoma/namada/issues/3810)).
 
 <table>
 <thead>
@@ -22,7 +23,7 @@ that is pruned after 2 epochs (see [`anoma/namada#3810`](https://github.com/anom
 <td><code>control_node.js</code></td>
 <td>⚠️ <b>Internal only</b></td>
 <td>No</td>
-<td>Manages the Namada node. <b>MUST run in isolated network (no Internet access).</b>
+<td>Manages the Namada node. <b>MUST run in isolated network (no Internet access except through <code>node-in</code> and <code>node-out</code>).</b>
 Parses node log; when epoch increments, <code>node</code> messages <code>node-out</code>
 to pause the sync.</td>
 </tr>

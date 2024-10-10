@@ -1,7 +1,8 @@
 #!/usr/bin/env -S deno run --allow-net --allow-run=simpleproxy,pkill,pgrep --allow-env=HOST,PORT,PROXY,LOCAL,REMOTE
 // This service manages a `simpleproxy` that receives outgoing connections
 // from the node over the internal network, and proxies them to the outside world.
-import { initialize, environment } from './lib.js'
+import { initialize, environment, api } from './lib.js'
+import { SimpleProxyService } from './services.js'
 if (import.meta.main) main()
 function main () {
   initialize()

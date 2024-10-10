@@ -1,5 +1,4 @@
 import { TextLineStream } from "./deps.js"
-import { Service } from './lib.js'
 
 export class ServiceManager {
   constructor (services) {

@@ -1,4 +1,4 @@
-#!/usr/bin/env -S deno run --allow-net --allow-run=namada,pkill,pgrep --allow-env=HOST,PORT,NAMADA,CHAIN_ID --allow-read=/home/namada/.local/share/namada
+#!/usr/bin/env -S deno run --allow-net --allow-run=namadan,pkill,pgrep --allow-env=HOST,PORT,NAMADA,CHAIN_ID --allow-read=/home/namada/.local/share/namada
 // This service runs the node. In order for the indexer to have time to fetch all data
 // before epoched data is pruned, this service parses the log output of the node, and
 // when the epoch has incremented it tells the outgoing proxy to cut off outgoing
@@ -15,7 +15,7 @@ function main () {
   const { HOST, PORT, NAMADA, CHAIN_ID } = environment({
     HOST:     "0.0.0.0",
     PORT:     "25551",
-    NAMADA:   "namada",
+    NAMADA:   "namadan",
     CHAIN_ID: "housefire-reduce.e51ecf4264fc3",
   })
   const service = new NamadaService(NAMADA, CHAIN_ID)
@@ -23,8 +23,8 @@ function main () {
 }
 
 export class NamadaService extends Service {
-  constructor (namada = 'namada', chainId) {
-    super('Namada', namada, 'node', 'ledger', 'run')
+  constructor (namada = 'namadan', chainId) {
+    super('Namada', namada, 'ledger', 'run')
     this.chainId = chainId
     this.regex   = new RegExp('Block height: (\\d+).+epoch: (\\d+)')
     this.events  = new EventTarget()

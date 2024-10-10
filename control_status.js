@@ -10,9 +10,9 @@ function main () {
     NODE: "http://node:25551",
     OUT:  "http://node-out:25552",
   })
-  const checkStatus = url => fetchJSON(IN)
+  const checkStatus = url => fetchJSON(url)
     .then(x=>({running: x}))
-    .catch(e=>({ error: e.message }))
+    .catch(e=>({error: e.message}))
   api(HOST, PORT, {
     '/': async (_) => respond(200, await awaitObject({
       "index": checkStatus(IN),

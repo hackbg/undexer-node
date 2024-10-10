@@ -79,10 +79,10 @@ export class Service extends LogPipe {
   }
   async state () {
     const cmd  = 'pgrep'
-    const args = [ '-x', this.command ]
+    const args = [ '-Acx', this.command ]
     const opts = { args, stdin: 'null', stdout: 'null', stderr: 'null' }
-    const { success } = await new Deno.Command(cmd, opts).spawn().status
-    return success
+    const status = await new Deno.Command(cmd, opts).spawn().status
+    return status.success
   }
   async start () {
     console.log('🚀 Starting:', this.name)

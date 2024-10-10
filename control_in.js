@@ -15,5 +15,6 @@ function main () {
   })
   const name = `Index proxy (${LOCAL} -> ${REMOTE})`
   const service = new Service(name, PROXY, '-v', '-L', LOCAL, '-R', REMOTE)
+  service.start()
   api(HOST, PORT, service.routes())
 }

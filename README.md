@@ -32,15 +32,15 @@ to pause the sync.</td>
 <td><code>control_in.js</code></td>
 <td>Internal, External</td>
 <td>⚠️ <b>Yes</b></td>
-<td>Proxies connections from indexer to node.</td>
+<td>Allows connections from indexer to node.</td>
 </tr>
 <tr>
 <td><code>node-out</code></td>
 <td><code>control_out.js</code></td>
 <td>Internal, External</td>
 <td>⚠️ <b>Yes</b></td>
-<td>Proxies connections from node to peers. By pausing this proxy, node sync is paused, so that
-the indexer can catch up.</td>
+<td>Allows connections from node to peers. By pausing the contained proxy,
+node sync is paused, so that the indexer can catch up.</td>
 </tr>
 <tr>
 <td><code>node-status</code></td>

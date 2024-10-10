@@ -41,11 +41,7 @@ function main () {
         console.log('🚨 Restarting sync from beginning...')
         await service.pause()
         await service.deleteData()
-        service.start()
-      }
-      if (data.resume) {
-        console.log('🟢 Resuming sync...')
-        service.start()
+        await service.start()
       }
     }
   })

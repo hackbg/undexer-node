@@ -16,5 +16,13 @@ function main () {
   const name = `Sync proxy (${LOCAL} -> ${REMOTE})`
   const service = new Service(name, PROXY, '-v', '-L', LOCAL, '-R', REMOTE)
   service.start()
-  api('Sync', HOST, PORT, service.routes())
+  api('Sync', HOST, PORT, service.routes(), {
+    onMessage: async ({ event }) => {
+      const data = JSON.parse(event.data)
+      if (data.resume) {
+        console.log('🟢 Resuming sync...')
+        await service.start()
+      }
+    }
+  })
 }

@@ -26,7 +26,7 @@ export function api (host, port, routes = {}) {
     let { pathname } = new URL(req.url)
     while (pathname.endsWith('/')) pathname = pathname.slice(0, pathname.length - 1)
     // Route request to service
-    for (const [route, handler] of routes) {
+    for (const [route, handler] of Object.entries(routes)) {
       if (route === pathname) {
         return await Promise.resolve(handler(req)) || redirect('/')
       }

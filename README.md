@@ -1,74 +1,85 @@
 # Namada custom
 
-This Dockerfile represents a modified [Namada](https://github.com/anoma/namada) node container
-which connects through [simpleproxy](https://github.com/vzaliva/simpleproxy). The local proxy
-acts as a "circuit breaker", allowing the sync process of the fullnode to be paused and resumed.
-This is necessary because Namada aggressively prunes data from past epochs, and the only way for
-[Undexer](https://github.com/hackbg/undexer) to index it is while a fullnode is syncing (see
-https://github.com/anoma/namada/issues/3810).
+This repo emits a container image that can run in **4 modes**.
+Running all 4 together in the setup described below results in
+a Namada node whose **syncing can be paused.** Together with Undexer,
+this allows for a Namada chain to be fully indexed - including data
+that is pruned after the passing of 2 epochs.
 
-## First steps
+* `node` runs `control_node.js`. This manages the Namada node.
+  **This should be run in an isolated Docker network with no Internet access.**
+* `node-in` runs `control_in.js`. This manages an instance of `simpleproxy`
+  which proxies connections **from the indexer to the node**. It should have access to
+  **both the isolated network as well as the network of the indexing process.**
+* `node-out` runs `control_out.js`. This manages an instance of `simpleproxy`
+  which proxies connections **from the node to its peers**. By stopping this proxy,
+  syncing is paused so that the indexer can **catch up before epoched data
+  is pruned by the node**. It should have access to **both the isolated network
+  and the outside world.**
+* `node-status` runs `control_status.js`. This manages the other control processes,
+  most importantly - starting/stopping the `node-out` proxy. It should have access
+  to **the networks of all other containers.**
 
-```sh
-just build # build the image
-just run   # start the container
-curl localhost:25555 # get status
+Note that `node-in` and `node-out` require to be run with `--init` (`init: true`),
+so that Docker is able to reap the zombie processes that are created when the
+internal `simpleproxy` is killed by the managing script.
+
+Here's an example Docker Compose manifest which describes the relations between
+the containers. Adapt as needed.
+
+```yaml
+volumes:
+  database:
+networks:
+  database:
+  external:
+  internal:
+    internal: true
+services:
+  postgres:
+    image:    postgres:16.2-alpine
+    networks: [ database ]
+    restart:  unless-stopped
+    ports:    [ "127.0.0.1:5432:5432" ]
+    environment:
+      - POSTGRES_PASSWORD=insecure
+      - POSTGRES_USER=postgres
+      - POSTGRES_DB=postgres
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  indexer:
+    entrypoint:  /app/undexer
+    command:     index
+    networks:    [ external, database ]
+    image:       oci.hack.bg/undexer:v4
+    restart:     unless-stopped
+    depends_on:  { postgres: { condition: service_healthy } }
+    environment: { RPC_URL: "http://node-in:26657" }
+  node-in:
+    entrypoint:  /control_in.js
+    networks:    [ external, internal ]
+    image:       oci.hack.bg/namada:userv
+    init:        true
+    restart:     unless-stopped
+  node:
+    entrypoint:  /control_node.js
+    networks:    [ internal ]
+    image:       oci.hack.bg/namada:userv
+    restart:     unless-stopped
+  node-out:
+    entrypoint:  /control_out.js
+    networks:    [ external, internal ]
+    image:       oci.hack.bg/namada:userv
+    init:        true
+    restart:     unless-stopped
+  node-status:
+    entrypoint:  /control_status.js
+    networks:    [ external, internal ]
+    image:       oci.hack.bg/namada:userv
+    init:        true
+    restart:     unless-stopped
+    ports:       [ "127.0.0.1:25555:25555" ]
 ```
-
-## Configuration
-
-This service is configured using environment variables.
-
-* `NAMADA`: override path to `namada` binary (useful for development)
-* `PROXY`: override path to `simpleproxy` binary (useful for development)
-* `LOCAL`: passed to `simpleproxy -L` (local address to which the node connects)
-* `REMOTE`: passed to `simpleproxy -R` (must be an actual remote persistent peer)
-* `CONTROL_HOST`: defaults to `localhost`
-* `CONTROL_PORT`: defaults to `25555`
-* `CHAIN_ID`: needs to be correct in order to restart syncs from scratch
-
-Note: when runing in Docker, use `--init` (to reap the `simpleproxy` process).
-
-## HTTP API
-
-```sh
-curl localhost:25555/proxy/stop  # pause syncing
-curl localhost:25555/proxy/start # continue syncing
-curl localhost:25555/node/stop   # kill the node
-curl localhost:25555/node/start  # restart the node
-curl localhost:25555/node/mute   # reduce log output
-curl localhost:25555/node/unmute # restore log output
-```
-
-## WebSocket API
-
-Subscribe to sync progress:
-
-```sh
-websocat ws://localhost:25555/ws
-# {"synced":{"block":"...","epoch":"..."}}
-```
-
-When epoch increments, sync will automatically pause.
-After indexing the data from te epoch, send `resume`:
-
-```sh
-echo '{"resume":{}}' | websocat ws://localhost:25555/ws
-```
-
-To erase the node data and start syncing from scratch,
-use the `restart` message:
-
-```sh
-echo '{"restart":{}}' | websocat ws://localhost:25555/ws
-```
-
-It is also possible to combine both, to atomically restart and resume:
-
-```sh
-echo '{"restart":{}, "resume":{}}' | websocat ws://localhost:25555/ws
-```
-
-## TODO
-
-* Unify HTTP and WebSocket APIs

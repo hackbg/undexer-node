@@ -3,8 +3,8 @@
 This repo emits a container image that can run in **4 modes**.
 Running all 4 together in the setup described below results in
 a Namada node whose **syncing can be paused.** Together with Undexer,
-this allows for a Namada chain to be fully indexed - including data
-that is pruned after the passing of 2 epochs.
+this allows for a Namada chain to be fully indexed - including the data
+that is pruned after 2 epochs (see [`anoma/namada#3810`](https://github.com/anoma/namada/issues/3810)).
 
 * `node` runs `control_node.js`. This manages the Namada node.
   **This should be run in an isolated Docker network with no Internet access.**

@@ -27,6 +27,8 @@ This service is configured using environment variables.
 * `CONTROL_PORT`: defaults to `25555`
 * `CHAIN_ID`: needs to be correct in order to restart syncs from scratch
 
+Note: when runing in Docker, use `--init` (to reap the `simpleproxy` process).
+
 ## HTTP API
 
 ```sh

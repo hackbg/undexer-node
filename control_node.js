@@ -69,13 +69,13 @@ export class NamadaService extends Service {
         if (!this.muted) console.log(chunk)
         const match = chunk.match(this.regex)
         if (match) {
-          const [block, epoch] = match.slice(1)
+          let [block, epoch] = match.slice(1)
           console.log(` ✔  Sync: block ${block} of epoch ${epoch}`)
           this.events.dispatchEvent(new SyncEvent({ block, epoch }))
           epoch = BigInt(epoch)
-          if (epoch > currentEpoch) {
+          if (epoch > this.epoch) {
             console.log('\n🟠 Epoch has increased. Pausing until indexer catches up.\n')
-            this.stop().then(()=>currentEpoch = epoch)
+            this.stop().then(()=>this.epoch = epoch)
           }
         }
       } }))

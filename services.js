@@ -117,7 +117,8 @@ export class Service {
       .pipeThrough(new TextDecoderStream())
       .pipeThrough(new TextLineStream())
       .pipeTo(new WritableStream({ write: (chunk, _) => {
-        this.muted || console.log(`:: ${this.name} :: ${kind} :: ${chunk}`)
+        //this.muted || console.log(`:: ${this.name} :: ${kind} :: ${chunk}`)
+        this.muted || console.log(chunk)
       }}))
   }
 }

@@ -38,7 +38,7 @@ export class NamadaService extends Service {
     const configPath = `/home/namada/.local/share/namada/${this.chainId}/config.toml`
     const config = (await Deno.readTextFile(configPath)).split('\n')
     for (const line of config.filter(line=>line.includes('persistent_peers'))) {
-      console.log('Config:', line)
+      console.log('ℹ️ Config:', line)
     }
     return super.start()
   }

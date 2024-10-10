@@ -30,7 +30,7 @@ function main () {
       const data = JSON.parse(event.data)
       if (data.restart) {
         console.log('🚨 Restarting sync from beginning...')
-        await service.stop()
+        await service.pause()
         await service.deleteData()
         service.start()
       }
@@ -75,7 +75,7 @@ export class NamadaService extends Service {
           epoch = BigInt(epoch)
           if (epoch > this.epoch) {
             console.log('\n🟠 Epoch has increased. Pausing until indexer catches up.\n')
-            this.stop().then(()=>this.epoch = epoch)
+            this.pause().then(()=>this.epoch = epoch)
           }
         }
       } }))

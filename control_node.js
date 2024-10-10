@@ -19,7 +19,27 @@ function main () {
     CHAIN_ID: "housefire-reduce.e51ecf4264fc3",
   })
   const service = new NamadaService(NAMADA, CHAIN_ID)
-  api('Node', HOST, PORT, service.routes())
+  api('Node', HOST, PORT, service.routes(), {
+    onOpen:    ({ send }) => {
+      service.events.addEventListener('synced', send)
+    },
+    onClose:   ({ send }) => {
+      service.events.removeEventListener('synced', send)
+    },
+    onMessage: async ({ event }) => {
+      const data = JSON.parse(event.data)
+      if (data.restart) {
+        console.log('🚨 Restarting sync from beginning...')
+        await service.stop()
+        await service.deleteData()
+        service.start()
+      }
+      if (data.resume) {
+        console.log('🟢 Resuming sync...')
+        service.start()
+      }
+    }
+  })
 }
 
 export class NamadaService extends Service {
@@ -28,6 +48,7 @@ export class NamadaService extends Service {
     this.chainId = chainId
     this.regex   = new RegExp('Block height: (\\d+).+epoch: (\\d+)')
     this.events  = new EventTarget()
+    this.epoch   = 0n
     this.start()
   }
   async start () {
@@ -38,7 +59,7 @@ export class NamadaService extends Service {
     }
     return super.start()
   }
-  pipe (stream, kind) {
+  pipe (stream, _kind) {
     stream
       .pipeThrough(new TextDecoderStream())
       .pipeThrough(new TextLineStream())
@@ -51,6 +72,11 @@ export class NamadaService extends Service {
           const [block, epoch] = match.slice(1)
           console.log(` ✔  Sync: block ${block} of epoch ${epoch}`)
           this.events.dispatchEvent(new SyncEvent({ block, epoch }))
+          epoch = BigInt(epoch)
+          if (epoch > currentEpoch) {
+            console.log('\n🟠 Epoch has increased. Pausing until indexer catches up.\n')
+            this.stop().then(()=>currentEpoch = epoch)
+          }
         }
       } }))
   }

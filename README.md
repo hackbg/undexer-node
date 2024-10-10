@@ -12,7 +12,7 @@ that is pruned after 2 epochs (see [`anoma/namada#3810`](https://github.com/anom
 <th>Mode</th>
 <th>Command</th>
 <th>Networks</th>
-<th>Requires <code>--init</code>?</th>
+<th>Requires init?</th>
 <th>Description</th>
 </tr>
 </thead>
@@ -20,9 +20,9 @@ that is pruned after 2 epochs (see [`anoma/namada#3810`](https://github.com/anom
 <tr>
 <td><code>node</code></td>
 <td><code>control_node.js</code></td>
-<td>Internal</td>
+<td>⚠️ <b>Internal only</b></td>
 <td>No</td>
-<td>Manages the Namada node. <b>Should run in isolated network (no Internet access).</b>
+<td>Manages the Namada node. <b>MUST run in isolated network (no Internet access).</b>
 Parses node log; when epoch increments, <code>node</code> messages <code>node-out</code>
 to pause the sync.</td>
 </tr>
@@ -30,14 +30,14 @@ to pause the sync.</td>
 <td><code>node-in</code></td>
 <td><code>control_in.js</code></td>
 <td>Internal, External</td>
-<td>Yes</td>
+<td>⚠️ <b>Yes</b></td>
 <td>Proxies connections from indexer to node.</td>
 </tr>
 <tr>
 <td><code>node-out</code></td>
 <td><code>control_out.js</code></td>
 <td>Internal, External</td>
-<td>Yes</td>
+<td>⚠️ <b>Yes</b></td>
 <td>Proxies connections from node to peers. By pausing this proxy, node sync is paused, so that
 the indexer can catch up.</td>
 </tr>
@@ -52,9 +52,10 @@ to resume sync, and <code>node-status</code> tells <code>node-out</code> to rest
 </tbody>
 </table>
 
-Note that `node-in` and `node-out` require to be run with `--init` (`init: true`),
-so that Docker is able to reap the zombie processes that are created when the
-internal `simpleproxy` is killed by the managing script.
+Note that `node-in` and `node-out` require an init process in the container
+(`docker run --init`, or `init: true` in `docker-compose.yml`) so that Docker
+is able to reap the zombie processes that are created when the internal
+`simpleproxy` is killed by the managing script.
 
 Here's an example Docker Compose manifest which describes the relations between
 the containers. Adapt as needed.

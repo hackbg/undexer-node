@@ -44,41 +44,37 @@ export function api (name, host, port, routes = {}, socket) {
   })
 }
 
-function upgradeWebSocket (req) {
+function upgradeWebSocket (req, {
+  onOpen    = () => {},
+  onClose   = () => {},
+  onMessage = () => {},
+} = {}) {
   const { socket, response } = Deno.upgradeWebSocket(req)
 
+  const send = ({ type, detail }) => {
+    if (socket.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify({ [type]: detail }))
+    } else {
+      console.error('🔴 Socket not open, message not sent:', { type, detail })
+    }
+  }
+
   socket.addEventListener("open", () => {
-    services.node.events.addEventListener('synced', send)
-    console.log("client connected to websocket")
+    console.log("🟢 Client connected to websocket")
+    onOpen({ socket, send })
   })
 
   socket.addEventListener("close", () => {
-    services.node.events.removeEventListener('synced', send)
-    console.log("client disconnected from websocket")
+    console.log("🟠 Client disconnected from websocket")
+    onClose({ socket, send })
   })
 
-  socket.addEventListener("message", async (event) => {
-    console.log("message received over websocket", event.data)
-    const data = JSON.parse(event.data)
-    if (data.restart) {
-      console.log('restarting sync from beginning...')
-      await services.node.stop()
-      await services.node.deleteData()
-      services.node.start()
-    }
-    if (data.resume) {
-      console.log('resuming sync...')
-      services.proxy.start()
-    }
+  socket.addEventListener("message", (event) => {
+    console.log("🔔 Message received over websocket", event.data)
+    onMessage({ socket, send, event })
   })
 
   return response
-
-  function send ({ type, detail }) {
-    if (socket.readyState === WebSocket.OPEN) {
-      socket.send(JSON.stringify({ [type]: detail }))
-    }
-  }
 }
 
 function normalizePathname ({ url }) {

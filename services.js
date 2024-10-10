@@ -70,10 +70,10 @@ export class Service {
     const { success } = await new Deno.Command(cmd, { args }).spawn().status
     return success
   }
-  start () {
-    console.log('Starting:', this.name)
+  async start () {
+    console.log('🚀 Starting:', this.name)
     if (this.process) {
-      console.log('Already started:', this.name)
+      console.log('🚀 Already started:', this.name)
       return false
     }
     const options = { args: this.args, stdout: 'piped', stderr: 'piped' }
@@ -88,22 +88,22 @@ export class Service {
       )
       this.process = null
     })
-    console.log('Started:', this.name, 'at PID:', this.process.pid)
+    console.log('🚀 Started: ', this.name, 'at PID:', this.process.pid)
     // Write service stdout and stderr to host stdout
     this.pipe(this.process.stdout, "stdout")
     this.pipe(this.process.stderr, "stderr")
     return true
   }
   async pause () {
-    console.log('Stopping:', this.name)
+    console.log('🟠 Stopping:', this.name)
     if (!this.process) {
-      console.log('Already stopped:', this.name)
+      console.log('🟠 Already stopped:', this.name)
       return false
     }
     const { pid } = this.process
     this.process.kill(this.signal)
     await this.process.status
-    console.log('Stopped:', this.name, 'at PID:', pid)
+    console.log('🟠 Stopped:', this.name, 'at PID:', pid)
     return true
   }
   mute () {
@@ -122,51 +122,9 @@ export class Service {
   }
 }
 
-export class NamadaService extends Service {
-  constructor (namada = 'namada', chainId) {
-    super('Namada', namada, 'node', 'ledger', 'run')
-    this.chainId = chainId
-    this.regex   = new RegExp('Block height: (\\d+).+epoch: (\\d+)')
-    this.events  = new EventTarget()
-    this.start()
-  }
-  pipe (stream, kind) {
-    stream
-      .pipeThrough(new TextDecoderStream())
-      .pipeThrough(new TextLineStream())
-      .pipeTo(new WritableStream({ write: (chunk, _) => {
-        if (!this.muted) console.log(`:: ${this.name} :: ${kind} :: ${chunk}`)
-        const match = chunk.match(this.regex)
-        if (match) {
-          const [block, epoch] = match.slice(1)
-          console.log(` ✔  Sync: block ${block} of epoch ${epoch}`)
-          this.events.dispatchEvent(new SyncEvent({ block, epoch }))
-        }
-      } }))
-  }
-  /** Delete node state, allowing the sync to start from scratch.
-    * This is invoked by the indexer when it finds that it is more
-    * than 2 epochs ahead of the sync. */
-  async deleteData () {
-    await Promise.all([
-      `db`, 'cometbft', 'tx_wasm_cache', 'vp_wasm_cache'
-    ].map(path=>Deno.remove(`/home/namada/.local/share/namada/${this.chainId}/${path}`, {
-      recursive: true
-    }).catch((e)=>{
-      console.warn(`Failed to remove ${path} (${e.message})`)
-    })))
-  }
-}
-
-class SyncEvent extends CustomEvent {
-  constructor (detail) {
-    super('synced', { detail })
-  }
-}
-
 export class SimpleProxyService extends Service {
   constructor (proxy = 'simpleproxy', local, remote) {
-    super('Proxy ', proxy, '-v', '-L', local, '-R', remote)
+    super('Proxy', proxy, '-v', '-L', local, '-R', remote)
     this.signal = 'SIGKILL'
     this.start()
   }

@@ -14,7 +14,6 @@ function main () {
     REMOTE: "namada-peer-housefire.mandragora.io:26656",
   })
   const service = new SimpleProxyService(PROXY, LOCAL, REMOTE)
-  service.start()
   api(HOST, PORT, {
     '/':      (_) => service.state(),
     '/start': (_) => service.start(),

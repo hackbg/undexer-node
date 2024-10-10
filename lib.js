@@ -21,7 +21,8 @@ export function environment (vars) {
 }
 
 export function api (host, port, routes = {}) {
-  return Deno.serve({ host, port }, async req => {
+  const onListen = () => console.log(`👂 ${host}:${port}`)
+  return Deno.serve({ host, port, onListen }, async req => {
     let { pathname } = new URL(req.url)
     while (pathname.endsWith('/')) pathname = pathname.slice(0, pathname.length - 1)
     // Route request to service

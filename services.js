@@ -44,30 +44,44 @@ export class ServiceManager {
         return Response.redirect(url)
       }
       // Respond with JSON data
-      function respond (status, data) {
-        const headers = { "content-type": "application/json" }
-        return new Response(JSON.stringify(data, null, 2), { status, headers })
-      }
     })
   }
 }
 
-export class Service {
+export function respond (status, data) {
+  const headers = { "content-type": "application/json" }
+  return new Response(JSON.stringify(data, null, 2), { status, headers })
+}
+
+export class LogPipe {
+  muted = false
+  mute () { this.muted = true }
+  unmute () { this.muted = false }
+  pipe (stream, _kind) {
+    stream
+      .pipeThrough(new TextDecoderStream())
+      .pipeThrough(new TextLineStream())
+      .pipeTo(new WritableStream({ write: (chunk, _) => {
+        //this.muted || console.log(`:: ${this.name} :: ${kind} :: ${chunk}`)
+        this.muted || console.log(chunk)
+      }}))
+  }
+}
+
+export class Service extends LogPipe {
   constructor (name, command, ...args) {
+    super()
     this.name    = name
     this.command = command
     this.args    = args
     this.process = null
     this.signal  = 'SIGTERM'
-    this.muted   = false
-  }
-  get status () {
-    return !!this.process
   }
   async state () {
     const cmd  = 'pgrep'
     const args = [ '-x', this.command ]
-    const { success } = await new Deno.Command(cmd, { args }).spawn().status
+    const opts = { args, stdin: 'null', stdout: 'null', stderr: 'null' }
+    const { success } = await new Deno.Command(cmd, opts).spawn().status
     return success
   }
   async start () {
@@ -82,7 +96,7 @@ export class Service {
     // Listen for process exit
     this.process.status.then(status=>{
       console.log(
-        'Died:',       this.name,
+        '🟠 Died:',    this.name,
         'with PID:',   this.process.pid,
         'and status:', JSON.stringify(status)
       )
@@ -92,7 +106,7 @@ export class Service {
     // Write service stdout and stderr to host stdout
     this.pipe(this.process.stdout, "stdout")
     this.pipe(this.process.stderr, "stderr")
-    return true
+    return await this.state()
   }
   async pause () {
     console.log('🟠 Stopping:', this.name)
@@ -101,43 +115,15 @@ export class Service {
       return false
     }
     const { pid } = this.process
-    this.process.kill(this.signal)
-    await this.process.status
-    console.log('🟠 Stopped:', this.name, 'at PID:', pid)
-    return true
-  }
-  mute () {
-    this.muted = true
-  }
-  unmute () {
-    this.muted = false
-  }
-  pipe (stream, kind) {
-    stream
-      .pipeThrough(new TextDecoderStream())
-      .pipeThrough(new TextLineStream())
-      .pipeTo(new WritableStream({ write: (chunk, _) => {
-        //this.muted || console.log(`:: ${this.name} :: ${kind} :: ${chunk}`)
-        this.muted || console.log(chunk)
-      }}))
-  }
-}
-
-export class SimpleProxyService extends Service {
-  constructor (proxy = 'simpleproxy', local, remote) {
-    super('Proxy', proxy, '-v', '-L', local, '-R', remote)
-    this.signal = 'SIGKILL'
-    this.start()
-  }
-  async stop () {
-    console.log('Stopping:', this.name)
-    if (!this.process) {
-      console.log('Already stopped:', this.name)
-      return false
-    }
-    const { pid } = this.process
     await new Deno.Command('pkill', { args: ['-9', 'simpleproxy'] }).spawn().status
-    console.log('Stopped:', this.name, 'at PID:', pid)
-    return true
+    console.log('🟠 Stopped:', this.name, 'at PID:', pid)
+    return await this.state()
+  }
+  routes () {
+    return {
+      '/':      async (_) => respond(200, await this.state()),
+      '/start': async (_) => respond(200, await this.start()),
+      '/pause': async (_) => respond(200, await this.pause()),
+    }
   }
 }

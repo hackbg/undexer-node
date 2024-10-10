@@ -19,11 +19,7 @@ function main () {
     CHAIN_ID: "housefire-reduce.e51ecf4264fc3",
   })
   const service = new NamadaService(NAMADA, CHAIN_ID)
-  api(HOST, PORT, {
-    '/':      (_) => service.state(),
-    '/start': (_) => service.start(),
-    '/pause': (_) => service.pause(),
-  })
+  api(HOST, PORT, service.routes())
 }
 
 export class NamadaService extends Service {
@@ -47,7 +43,9 @@ export class NamadaService extends Service {
       .pipeThrough(new TextDecoderStream())
       .pipeThrough(new TextLineStream())
       .pipeTo(new WritableStream({ write: (chunk, _) => {
-        if (!this.muted) console.log(`:: ${this.name} :: ${kind} :: ${chunk}`)
+        //if (!this.muted) console.log(`:: ${this.name} :: ${kind} :: ${chunk}`)
+        //this.muted || console.log(`:: ${this.name} :: ${kind} :: ${chunk}`)
+        if (!this.muted) console.log(chunk)
         const match = chunk.match(this.regex)
         if (match) {
           const [block, epoch] = match.slice(1)

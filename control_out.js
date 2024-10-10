@@ -2,7 +2,7 @@
 // This service manages a `simpleproxy` that receives outgoing connections
 // from the node over the internal network, and proxies them to the outside world.
 import { initialize, environment, api } from './lib.js'
-import { SimpleProxyService } from './services.js'
+import { Service } from './services.js'
 if (import.meta.main) main()
 function main () {
   initialize()
@@ -13,10 +13,7 @@ function main () {
     LOCAL:  ":26666",
     REMOTE: "namada-peer-housefire.mandragora.io:26656",
   })
-  const service = new SimpleProxyService(PROXY, LOCAL, REMOTE)
-  api(HOST, PORT, {
-    '/':      (_) => service.state(),
-    '/start': (_) => service.start(),
-    '/pause': (_) => service.pause(),
-  })
+  const name = `Sync proxy (${LOCAL} -> ${REMOTE})`
+  const service = new Service(name, PROXY, '-v', '-L', LOCAL, '-R', REMOTE)
+  api(HOST, PORT, service.routes())
 }

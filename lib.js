@@ -21,10 +21,11 @@ export function environment (vars) {
 }
 
 export function api (host, port, routes = {}) {
-  const onListen = () => console.log(`👂 ${host}:${port}`)
+  const onListen = () => console.log(`👂 Control port: ${host}:${port}`)
   return Deno.serve({ host, port, onListen }, async req => {
     let { pathname } = new URL(req.url)
     while (pathname.endsWith('/')) pathname = pathname.slice(0, pathname.length - 1)
+    if (pathname === '') pathname = '/'
     // Route request to service
     for (const [route, handler] of Object.entries(routes)) {
       if (route === pathname) {
@@ -44,6 +45,11 @@ export function api (host, port, routes = {}) {
       return new Response(JSON.stringify(data, null, 2), { status, headers })
     }
   })
+}
+
+export function respond (status, data) {
+  const headers = { "content-type": "application/json" }
+  return new Response(JSON.stringify(data, null, 2), { status, headers })
 }
 
 export async function awaitObject (object) {

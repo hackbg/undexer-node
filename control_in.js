@@ -2,7 +2,7 @@
 // This service manages a `simpleproxy` that receives incoming connections
 // from the indexer, and proxies them to the node over the internal network.
 import { initialize, environment, api } from './lib.js'
-import { SimpleProxyService } from './services.js'
+import { Service } from './services.js'
 if (import.meta.main) main()
 function main () {
   initialize()
@@ -10,13 +10,10 @@ function main () {
     HOST:   "0.0.0.0",
     PORT:   "25550",
     PROXY:  "simpleproxy",
-    LOCAL:  ":26666",
-    REMOTE: "namada:26656",
+    LOCAL:  ":26657",
+    REMOTE: "node:26657",
   })
-  const service = new SimpleProxyService(PROXY, LOCAL, REMOTE)
-  api(HOST, PORT, {
-    '/':      (_) => service.state(),
-    '/start': (_) => service.start(),
-    '/pause': (_) => service.pause(),
-  })
+  const name = `Index proxy (${LOCAL} -> ${REMOTE})`
+  const service = new Service(name, PROXY, '-v', '-L', LOCAL, '-R', REMOTE)
+  api(HOST, PORT, service.routes())
 }

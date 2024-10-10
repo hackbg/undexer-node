@@ -1,4 +1,4 @@
-#!/usr/bin/env -S deno run --allow-net --allow-run=namadan,pkill,pgrep --allow-env=HOST,PORT,NAMADA,CHAIN_ID --allow-read=/home/namada/.local/share/namada
+#!/usr/bin/env -S deno run --allow-net --allow-run=namadan,pkill,pgrep --allow-env=HOST,PORT,NAMADA,CHAIN_ID,NODE_OUT --allow-read=/home/namada/.local/share/namada
 // This service runs the node. In order for the indexer to have time to fetch all data
 // before epoched data is pruned, this service parses the log output of the node, and
 // when the epoch has incremented it tells the outgoing proxy to cut off outgoing
@@ -12,13 +12,22 @@ if (import.meta.main) setTimeout(main, 0)
 
 function main () {
   initialize()
-  const { HOST, PORT, NAMADA, CHAIN_ID } = environment({
+  const { HOST, PORT, NAMADA, CHAIN_ID, NODE_OUT } = environment({
     HOST:     "0.0.0.0",
     PORT:     "25551",
     NAMADA:   "namadan",
     CHAIN_ID: "housefire-reduce.e51ecf4264fc3",
+    NODE_OUT: "http://node-out:25552"
   })
   const service = new NamadaService(NAMADA, CHAIN_ID)
+  service.events.addEventListener('request-pause', async () => {
+    let result = true
+    while (!(result === false)) {
+      console.log('🟠 Requesting pause until indexer catches up.')
+      const response = await fetch(`${NODE_OUT}/pause`)
+      result = await response.json()
+    }
+  })
   api('Node', HOST, PORT, service.routes(), {
     onOpen:    ({ send }) => {
       service.events.addEventListener('synced', send)
@@ -74,8 +83,9 @@ export class NamadaService extends Service {
           this.events.dispatchEvent(new SyncEvent({ block, epoch }))
           epoch = BigInt(epoch)
           if (epoch > this.epoch) {
-            console.log('\n🟠 Epoch has increased. Pausing until indexer catches up.\n')
-            this.pause().then(()=>this.epoch = epoch)
+            this.epoch = epoch
+            console.log('🟠 Epoch has increased to', epoch)
+            this.events.dispatchEvent(new RequestPauseEvent())
           }
         }
       } }))
@@ -97,5 +107,11 @@ export class NamadaService extends Service {
 class SyncEvent extends CustomEvent {
   constructor (detail) {
     super('synced', { detail })
+  }
+}
+
+class RequestPauseEvent extends CustomEvent {
+  constructor () {
+    super('request-pause')
   }
 }

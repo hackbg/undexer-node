@@ -13,7 +13,7 @@ function main () {
   const checkStatus = url => fetchJSON(url)
     .then(x=>({running: x}))
     .catch(e=>({error: e.message}))
-  api(HOST, PORT, {
+  api('Status', HOST, PORT, {
     '/': async (_) => respond(200, await awaitObject({
       "index": checkStatus(IN),
       "node":  checkStatus(NODE),

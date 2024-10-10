@@ -16,5 +16,5 @@ function main () {
   const name = `Sync proxy (${LOCAL} -> ${REMOTE})`
   const service = new Service(name, PROXY, '-v', '-L', LOCAL, '-R', REMOTE)
   service.start()
-  api(HOST, PORT, service.routes())
+  api('Sync', HOST, PORT, service.routes())
 }

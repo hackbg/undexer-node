@@ -19,7 +19,7 @@ function main () {
     CHAIN_ID: "housefire-reduce.e51ecf4264fc3",
   })
   const service = new NamadaService(NAMADA, CHAIN_ID)
-  api(HOST, PORT, service.routes())
+  api('Node', HOST, PORT, service.routes())
 }
 
 export class NamadaService extends Service {

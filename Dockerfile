@@ -1,4 +1,4 @@
-FROM ghcr.io/anoma/namada:v0.44.0 AS namada
+FROM ghcr.io/anoma/namada:v0.44.1 AS namada
 
 # Install system dependencies
 USER root
@@ -13,7 +13,7 @@ RUN cd /tmp \
 # Configure node
 USER namada
 ENV NAMADA_NETWORK_CONFIGS_SERVER="https://testnet.knowable.run/configs"
-ENV CHAIN_ID="housefire-reduce.e51ecf4264fc3"
+ENV CHAIN_ID="housefire-cotton.d3c912fee7462"
 ENV DATA_DIR="/home/namada/.local/share/namada/$CHAIN_ID"
 ENV WASM_DIR="$DATA_DIR/wasm"
 ENV CONFIG_DIR="$DATA_DIR/config.toml"

@@ -1,25 +1,20 @@
 #!/usr/bin/env -S deno run --allow-net --allow-run=namada,simpleproxy,pkill --allow-env=NAMADA,PROXY,LOCAL,REMOTE,CONTROL_HOST,CONTROL_PORT,CHAIN_ID --allow-write=/home/namada/.local/share/namada
 
-import { TextLineStream } from "./deps.js"
-import { ServiceManager, Service } from './lib.js'
+import { initialize, environment, ServiceManager } from './lib.js'
+import { NamadaService, SimpleProxyService } from './services.js'
+
+if (import.meta.main) main()
 
 function main () {
-
-  const t0 = performance.now()
-
-  // Global environment configuration
-  const NAMADA       = Deno.env.get("NAMADA")       ?? "namada"
-  const PROXY        = Deno.env.get("PROXY")        ?? "simpleproxy"
-  const LOCAL        = Deno.env.get("LOCAL")        ?? ":26666"
-  const REMOTE       = Deno.env.get("REMOTE")       ?? "namada-peer-housefire.mandragora.io:26656"
-  const CONTROL_HOST = Deno.env.get("CONTROL_HOST") ?? "127.0.0.1"
-  const CONTROL_PORT = Deno.env.get("CONTROL_PORT") ?? "25555"
-  const CHAIN_ID     = Deno.env.get("CHAIN_ID")     ?? "housefire-reduce.e51ecf4264fc3"
-
-  // Exit cleanly on Ctrl-C (otherwise container just detaches)
-  Deno.addSignalListener("SIGINT", () => {
-    console.log('Ran for', ((performance.now() - t0)/1000).toFixed(3), 'seconds')
-    Deno.exit()
+  initialize()
+  const { NAMADA, PROXY, LOCAL, REMOTE, CONTROL_HOST, CONTROL_PORT, CHAIN_ID } = environment({
+    NAMADA:       "namada",
+    PROXY:        "simpleproxy",
+    LOCAL:        ":26666",
+    REMOTE:       "namada-peer-housefire.mandragora.io:26656",
+    CONTROL_HOST: "127.0.0.1",
+    CONTROL_PORT: "25555",
+    CHAIN_ID:     "housefire-reduce.e51ecf4264fc3",
   })
 
   // Define the services
@@ -95,66 +90,3 @@ function main () {
   }))
 
 }
-
-class NamadaService extends Service {
-  constructor (namada = 'namada', chainId) {
-    super('Namada', namada, 'node', 'ledger', 'run')
-    this.chainId = chainId
-    this.regex   = new RegExp('Block height: (\\d+).+epoch: (\\d+)')
-    this.events  = new EventTarget()
-    this.start()
-  }
-  pipe (stream, kind) {
-    stream
-      .pipeThrough(new TextDecoderStream())
-      .pipeThrough(new TextLineStream())
-      .pipeTo(new WritableStream({ write: (chunk, _) => {
-        if (!this.muted) console.log(`:: ${this.name} :: ${kind} :: ${chunk}`)
-        const match = chunk.match(this.regex)
-        if (match) {
-          const [block, epoch] = match.slice(1)
-          console.log(` ✔  Sync: block ${block} of epoch ${epoch}`)
-          this.events.dispatchEvent(new SyncEvent({ block, epoch }))
-        }
-      } }))
-  }
-  /** Delete node state, allowing the sync to start from scratch.
-    * This is invoked by the indexer when it finds that it is more
-    * than 2 epochs ahead of the sync. */
-  async deleteData () {
-    await Promise.all([
-      `db`, 'cometbft', 'tx_wasm_cache', 'vp_wasm_cache'
-    ].map(path=>Deno.remove(`/home/namada/.local/share/namada/${this.chainId}/${path}`, {
-      recursive: true
-    }).catch((e)=>{
-      console.warn(`Failed to remove ${path} (${e.message})`)
-    })))
-  }
-}
-
-class SimpleProxyService extends Service {
-  constructor (proxy = 'simpleproxy', local, remote) {
-    super('Proxy ', proxy, '-v', '-L', local, '-R', remote)
-    this.signal = 'SIGKILL'
-    this.start()
-  }
-  async stop () {
-    console.log('Stopping:', this.name)
-    if (!this.process) {
-      console.log('Already stopped:', this.name)
-      return false
-    }
-    const { pid } = this.process
-    await new Deno.Command('pkill', { args: ['-9', 'simpleproxy'] }).spawn().status
-    console.log('Stopped:', this.name, 'at PID:', pid)
-    return true
-  }
-}
-
-class SyncEvent extends CustomEvent {
-  constructor (detail) {
-    super('synced', { detail })
-  }
-}
-
-if (import.meta.main) main()

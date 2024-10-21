@@ -48,8 +48,8 @@ pprof_laddr = ""
 [ledger.cometbft.p2p]
 laddr = "tcp://0.0.0.0:26656"
 external_address = ""
-seeds = "tcp://836a25b5c465352adf17430135888689b9a0f1d6@namada-seed-housefire.mandragora.io:21656"
-persistent_peers = "tcp://a675f4c862fbf71e08a2a770240a79ac3933d163@namada-peer-housefire.mandragora.io:26656"
+seeds = ""
+persistent_peers = "tcp://a675f4c862fbf71e08a2a770240a79ac3933d163@node-out:26666"
 upnp = false
 addr_book_file = "config/addrbook.json"
 addr_book_strict = false

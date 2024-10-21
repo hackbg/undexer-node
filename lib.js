@@ -1,117 +1,119 @@
 import { TextLineStream } from "./deps.js"
 
-export class ServiceManager {
-  constructor (services) {
-    this.services = services
-    // Define routes from services
-    this.routes = []
-    for (const [id, service] of Object.entries(services)) {
-      this.routes.push([`/${id}/start`,  () => { service.start()  }])
-      this.routes.push([`/${id}/stop`,   () => { service.stop()   }])
-      this.routes.push([`/${id}/mute`,   () => { service.mute()   }])
-      this.routes.push([`/${id}/unmute`, () => { service.unmute() }])
+export function initialize () {
+  // Launch timestamp
+  const t0 = performance.now()
+  // Exit cleanly on Ctrl-C (otherwise container just detaches)
+  Deno.addSignalListener("SIGINT", () => {
+    console.log('Ran for', ((performance.now() - t0)/1000).toFixed(3), 'seconds')
+    Deno.exit()
+  })
+
+  return t0
+}
+
+export function environment (vars) {
+  const result = {}
+  for (const [name, defaultValue] of Object.entries(vars)) {
+    result[name] = Deno.env.get(name) ?? defaultValue
+  }
+  return result
+}
+
+export function api (name, host, port, routes = {}, socket) {
+  return Deno.serve({
+    host,
+    port,
+    onListen: () => console.log(`👂 ${name} control port: ${host}:${port}`)
+  }, async req => {
+    if (req.headers.get("upgrade") == "websocket") {
+      if (socket) {
+        return upgradeWebSocket(req, socket)
+      } else {
+        return respond(400, { error: 'websocket unavailable here' })
+      }
+    } else {
+      const pathname = normalizePathname(req)
+      const handler  = route(routes, pathname)
+      if (handler) {
+        return await Promise.resolve(handler(req))
+      } else {
+        return respond(404, { error: 'not found' })
+      }
+    }
+  })
+}
+
+function upgradeWebSocket (req, {
+  onOpen    = () => {},
+  onClose   = () => {},
+  onMessage = () => {},
+} = {}) {
+  const { socket, response } = Deno.upgradeWebSocket(req)
+
+  const send = ({ type, detail }) => {
+    if (socket.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify({ [type]: detail }))
+    } else {
+      console.error('🔴 Socket not open, message not sent:', { type, detail })
     }
   }
-  listen (config, getInfo) {
-    // Run service
-    Deno.serve(config, async (req) => {
-      try {
-        // Service status
-        const info = getInfo()
-        // Trim trailing slashes
-        let { pathname } = new URL(req.url)
-        while (pathname.endsWith('/')) pathname = pathname.slice(0, pathname.length - 1)
-        // Route request to service
-        for (const [route, handler] of this.routes) {
-          if (route === pathname) {
-            return await Promise.resolve(handler(req)) || redirect('/')
-          }
-        }
-        // Default routes
-        switch (pathname) {
-          case '': return respond(200, info)
-          default: return respond(404, { error: 'not found' })
-        }
-      } catch (e) {
-        // Error handler
-        console.error(e)
-        return respond(500, { error: e.message||e })
-      }
-      // Return a redirect to another path on the same host
-      function redirect (pathname) {
-        const url = new URL(req.url)
-        url.pathname = pathname
-        return Response.redirect(url)
-      }
-      // Respond with JSON data
-      function respond (status, data) {
-        const headers = { "content-type": "application/json" }
-        return new Response(JSON.stringify(data, null, 2), { status, headers })
-      }
-    })
+
+  socket.addEventListener("open", () => {
+    console.log("🟢 Client connected to websocket")
+    onOpen({ socket, send })
+  })
+
+  socket.addEventListener("close", () => {
+    console.log("🟠 Client disconnected from websocket")
+    onClose({ socket, send })
+  })
+
+  socket.addEventListener("message", (event) => {
+    console.log("🔔 Message received over websocket", event.data)
+    onMessage({ socket, send, event })
+  })
+
+  return response
+}
+
+function normalizePathname ({ url }) {
+  let { pathname } = new URL(url)
+  while (pathname.endsWith('/')) pathname = pathname.slice(0, pathname.length - 1)
+  if (pathname === '') pathname = '/'
+  return pathname
+}
+
+// Route request to handler
+function route (routes, pathname) {
+  for (const [route, handler] of Object.entries(routes)) {
+    if (route === pathname) {
+      return handler
+    }
   }
 }
 
-export class Service {
-  constructor (name, command, ...args) {
-    this.name    = name
-    this.command = command
-    this.args    = args
-    this.process = null
-    this.signal  = 'SIGTERM'
-    this.muted   = false
-  }
-  get status () {
-    return !!this.process
-  }
-  start () {
-    console.log('Starting:', this.name)
-    if (this.process) {
-      console.log('Already started:', this.name)
-      return false
-    }
-    const options = { args: this.args, stdout: 'piped', stderr: 'piped' }
-    // Spawn child process
-    this.process = new Deno.Command(this.command, options).spawn()
-    // Listen for process exit
-    this.process.status.then(status=>{
-      console.log(
-        'Died:',       this.name,
-        'with PID:',   this.process.pid,
-        'and status:', JSON.stringify(status)
-      )
-      this.process = null
-    })
-    console.log('Started:', this.name, 'at PID:', this.process.pid)
-    // Write service stdout and stderr to host stdout
-    this.pipe(this.process.stdout, "stdout")
-    this.pipe(this.process.stderr, "stderr")
-    return true
-  }
-  async stop () {
-    console.log('Stopping:', this.name)
-    if (!this.process) {
-      console.log('Already stopped:', this.name)
-      return false
-    }
-    const { pid } = this.process
-    this.process.kill(this.signal)
-    await this.process.status
-    console.log('Stopped:', this.name, 'at PID:', pid)
-    return true
-  }
-  mute () {
-    this.muted = true
-  }
-  unmute () {
-    this.muted = false
-  }
-  pipe (stream, kind) {
-    stream
-      .pipeThrough(new TextDecoderStream())
-      .pipeThrough(new TextLineStream())
-      .pipeTo(new WritableStream({ write: (chunk, _) => {
-        this.muted || console.log(`:: ${this.name} :: ${kind} :: ${chunk}`)
-      }}))
-  }
+// Return a redirect to another path on the same host
+function redirect (pathname) {
+  const url = new URL(req.url)
+  url.pathname = pathname
+  return Response.redirect(url)
+}
+
+// Respond with JSON data
+export function respond (status, data) {
+  const headers = { "content-type": "application/json" }
+  return new Response(JSON.stringify(data, null, 2), { status, headers })
+}
+
+export async function awaitObject (object) {
+  const results = {}
+  await Promise.all(Object.entries(object)
+    .map(([key, value])=>Promise.resolve(value).then(result=>results[key]=result)))
+  return results
+}
+
+export async function fetchJSON (...args) {
+  const response = await fetch(...args)
+  return await response.json()
 }

@@ -75,7 +75,7 @@ export class NamadaService extends Service {
         const match = chunk.match(this.regex)
         if (match) {
           let [block, epoch] = match.slice(1)
-          console.log(` ✔  Sync: block ${block} of epoch ${epoch}`)
+          console.log(`🟢 Sync: block ${block} of epoch ${epoch}`)
           this.events.dispatchEvent(new SyncEvent({ block, epoch }))
           epoch = BigInt(epoch)
           if (epoch > this.epoch) {
@@ -90,13 +90,17 @@ export class NamadaService extends Service {
     * This is invoked by the indexer when it finds that it is more
     * than 2 epochs ahead of the sync. */
   async deleteData () {
-    await Promise.all([
-      `db`, 'cometbft', 'tx_wasm_cache', 'vp_wasm_cache'
-    ].map(path=>Deno.remove(`/home/namada/.local/share/namada/${this.chainId}/${path}`, {
-      recursive: true
-    }).catch((e)=>{
+    while (true) try {
+      console.log('Deleting node data...')
+      await Promise.all([
+        `db`, 'cometbft', 'tx_wasm_cache', 'vp_wasm_cache'
+      ].map(path=>Deno.remove(`/home/namada/.local/share/namada/${this.chainId}/${path}`, {
+        recursive: true
+      })))
+      break
+    } catch (e) {
       console.warn(`Failed to remove ${path} (${e.message})`)
-    })))
+    }
   }
 }
 

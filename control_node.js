@@ -1,4 +1,4 @@
-#!/usr/bin/env -S deno run --allow-net --allow-run=namadan,pkill,pgrep --allow-env=HOST,PORT,NAMADA,CHAIN_ID,NODE_OUT --allow-read=/home/namada/.local/share/namada
+#!/usr/bin/env -S deno run --allow-net --allow-run=namadan,pkill,pgrep --allow-env=HOST,PORT,NAMADA,CHAIN_ID,NODE_OUT --allow-write=/home/namada/.local/share/namada
 // This service runs the node. In order for the indexer to have time to fetch all data
 // before epoched data is pruned, this service parses the log output of the node, and
 // when the epoch has incremented it tells the outgoing proxy to cut off outgoing

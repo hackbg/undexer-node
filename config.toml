@@ -1,11 +1,11 @@
-wasm_dir = "/home/namada/.local/share/namada/housefire-reduce.e51ecf4264fc3/wasm"
+wasm_dir = "/home/namada/.local/share/namada/namada-dryrun.abaaeaf7b78cb3ac/wasm"
 
 [ledger]
-genesis_time = "2024-09-27T20:48:42.000000000+00:00"
-chain_id = "housefire-reduce.e51ecf4264fc3"
+genesis_time = "2024-11-12T15:00:00.000000000+00:00"
+chain_id = "namada-dryrun.abaaeaf7b78cb3ac"
 
 [ledger.shell]
-base_dir = "/home/namada/.local/share/namada/housefire-reduce.e51ecf4264fc3"
+base_dir = "/home/namada/.local/share/namada/namada-dryrun.abaaeaf7b78cb3ac"
 storage_read_past_height_limit = 3600
 db_dir = "db"
 cometbft_dir = "cometbft"
@@ -49,7 +49,7 @@ pprof_laddr = ""
 laddr = "tcp://0.0.0.0:26656"
 external_address = ""
 seeds = ""
-persistent_peers = "tcp://a675f4c862fbf71e08a2a770240a79ac3933d163@node-out:26666"
+persistent_peers = "tcp://11e59922aa59989811fdb3bc1e22b85cbbe5a14e@node-out:26666"
 upnp = false
 addr_book_file = "config/addrbook.json"
 addr_book_strict = false

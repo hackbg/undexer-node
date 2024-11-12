@@ -19,3 +19,6 @@ root:
   docker run {{config}} -tu 0 {{image}}:{{tag}} --
 deps:
   deno cache deps.js
+push:
+  git push -u github main
+  git push -u origin main

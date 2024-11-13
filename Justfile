@@ -22,3 +22,6 @@ deps:
 push:
   git push -u github main
   git push -u origin main
+fpush:
+  git push -fu github main
+  git push -fu origin main

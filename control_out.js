@@ -11,7 +11,7 @@ function main () {
     PORT:   "25552",
     PROXY:  "simpleproxy",
     LOCAL:  ":26666",
-    REMOTE: "namada-peer-housefire.mandragora.io:26656",
+    REMOTE: "namada-peer.mandragora.io:26656",
   })
   const name = `Sync proxy (${LOCAL} -> ${REMOTE})`
   const service = new Service(name, PROXY, '-v', '-L', LOCAL, '-R', REMOTE)

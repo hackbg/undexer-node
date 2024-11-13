@@ -109,11 +109,5 @@ services:
     image:       ghcr.io/hackbg/namada-for-undexer:main
     init:        true
     restart:     unless-stopped
-  node-status:
-    entrypoint:  /control_status.js
-    networks:    [ external, internal ]
-    image:       ghcr.io/hackbg/namada-for-undexer:main
-    init:        true
-    restart:     unless-stopped
-    ports:       [ "127.0.0.1:25555:25555" ]
+    environment: { REMOTE: "namada-peer.mandragora.io:26656" }
 ```

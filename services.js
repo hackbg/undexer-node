@@ -138,7 +138,7 @@ export class MultiService extends LogPipe {
   }
   async state () {
     const commands = [...new Set(this.commands.map(command=>command[0]))]
-    await Promise.all(commands.map(async command=>{
+    return await Promise.all(commands.map(async command=>{
       const cmd    = 'pgrep'
       const args   = [ '-Acx', command[0] ]
       const opts   = { args, stdin: 'null', stdout: 'null', stderr: 'null' }

@@ -88,7 +88,7 @@ services:
     entrypoint:  /app/undexer
     command:     index
     networks:    [ external, database ]
-    image:       oci.hack.bg/undexer:v4
+    image:       ghcr.io/hackbg/undexer:v4
     restart:     unless-stopped
     depends_on:  { postgres: { condition: service_healthy } }
     environment: { RPC_URL: "http://node-in:26657" }

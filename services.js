@@ -169,7 +169,7 @@ export class MultiService extends LogPipe {
       this.processes[c].status.then(status=>{
         console.log(
           '🟠 Died:',    this.name,
-          'with PID:',   this.processes[p].pid,
+          'with PID:',   this.processes[c].pid,
           'and status:', JSON.stringify(status)
         )
         this.processes[c] = null

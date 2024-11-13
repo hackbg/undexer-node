@@ -147,7 +147,7 @@ export class MultiService extends LogPipe {
   }
   async start () {
     console.log('🚀 Starting:', this.name)
-    if (this.processes.each(Boolean)) {
+    if (this.processes.every(Boolean)) {
       console.log('🚀 Already started:', this.name)
       return false
     }

@@ -131,8 +131,8 @@ export class Service extends LogPipe {
 export class MultiService extends LogPipe {
   constructor (name, commands) {
     super()
-    this.name      = name
-    this.commands  = commands
+    this.name     = name
+    this.commands = commands
     console.log('🚀 Init', this.name, 'with', this.commands)
     this.processes = commands.map(_=>null)
   }
@@ -183,7 +183,7 @@ export class MultiService extends LogPipe {
   }
   async pause () {
     console.log('🟠 Stopping:', this.name)
-    if (this.processes.all(x=>Boolean(x)===false)) {
+    if (this.processes.every(x=>Boolean(x)===false)) {
       console.log('🟠 Already stopped:', this.name)
       return false
     }

@@ -133,6 +133,7 @@ export class MultiService extends LogPipe {
     super()
     this.name      = name
     this.commands  = commands
+    console.log('🚀 Init', this.name, 'with', this.commands)
     this.processes = commands.map(_=>null)
   }
   async state () {
@@ -158,6 +159,7 @@ export class MultiService extends LogPipe {
     // Spawn each child process
     for (const c in this.commands) {
       const [command, ...args] = this.commands[c]
+      console.log('🚀 Spawning:', this.commands[c])
       this.processes[c] = new Deno.Command(command, {
         args,
         stdout: 'piped',

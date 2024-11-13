@@ -188,8 +188,8 @@ export class MultiService extends LogPipe {
       return false
     }
     await Promise.all(this.commands.map(async ([command])=>{
-      await new Deno.Command('pkill', { args: ['-9', command] }).spawn().status
-      console.log('🟠 Stopped:', this.name, 'at PID:', pid)
+      await new Deno.Command('pkill', { args: ['-e', '-9', command] }).spawn().status
+      console.log('🟠 Stopped:', this.name)
     }))
     return await this.state()
   }

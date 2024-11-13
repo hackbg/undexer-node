@@ -19,9 +19,9 @@ function main () {
   })
   const name = `Sync proxy (3x)`
   const service = new MultiService(name, [
-    PROXY, '-v', '-L', LOCAL1, '-R', REMOTE1,
-    PROXY, '-v', '-L', LOCAL2, '-R', REMOTE2,
-    PROXY, '-v', '-L', LOCAL3, '-R', REMOTE3,
+    [PROXY, '-v', '-L', LOCAL1, '-R', REMOTE1],
+    [PROXY, '-v', '-L', LOCAL2, '-R', REMOTE2],
+    [PROXY, '-v', '-L', LOCAL3, '-R', REMOTE3],
   ])
   service.start()
   api('Sync', HOST, PORT, service.routes(), {

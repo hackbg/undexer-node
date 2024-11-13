@@ -1,4 +1,4 @@
-wasm_dir = "/home/namada/.local/share/namada/namada-dryrun.abaaeaf7b78cb3ac/wasm"
+wasm_dir = "wasm"
 
 [ledger]
 genesis_time = "2024-11-12T15:00:00.000000000+00:00"
@@ -49,7 +49,7 @@ pprof_laddr = ""
 laddr = "tcp://0.0.0.0:26656"
 external_address = ""
 seeds = ""
-persistent_peers = "tcp://11e59922aa59989811fdb3bc1e22b85cbbe5a14e@node-out:26666"
+persistent_peers = "tcp://05309c2cce2d163027a47c662066907e89cd6b99@node-out:26656,tcp://2bf5cdd25975c239e8feb68153d69c5eec004fdb@node-out:26657,tcp://75825cae136729aaf519ad62684b9b796c5593fd@node-out:26658"
 upnp = false
 addr_book_file = "config/addrbook.json"
 addr_book_strict = false
@@ -87,7 +87,7 @@ timeout_prevote = "1000ms"
 timeout_prevote_delta = "500ms"
 timeout_precommit = "1000ms"
 timeout_precommit_delta = "500ms"
-timeout_commit = "8000ms"
+timeout_commit = "6000ms"
 double_sign_check_height = 0
 skip_timeout_commit = false
 create_empty_blocks = true

@@ -127,3 +127,75 @@ export class Service extends LogPipe {
     }
   }
 }
+
+export class MultiService extends LogPipe {
+  constructor (name, commands) {
+    super()
+    this.name      = name
+    this.commands  = commands
+    this.processes = commands.map(_=>null)
+  }
+  async state () {
+    const commands = [...new Set(this.commands.map(command=>command[0]))]
+    await Promise.all(commands.map(async command=>{
+      const cmd    = 'pgrep'
+      const args   = [ '-Acx', command[0] ]
+      const opts   = { args, stdin: 'null', stdout: 'null', stderr: 'null' }
+      const status = await new Deno.Command(cmd, opts).spawn().status
+      return status.success
+    }))
+  }
+  async start () {
+    console.log('🚀 Starting:', this.name)
+    if (this.processes.each(Boolean)) {
+      console.log('🚀 Already started:', this.name)
+      return false
+    }
+    if (this.processes.some(Boolean)) {
+      console.log('🟠 Partially started, killing all and restarted:', this.name)
+      await this.pause()
+    }
+    // Spawn each child process
+    for (const c in this.commands) {
+      const [command, ...args] = this.commands[c]
+      this.processes[c] = new Deno.Command(command, {
+        args,
+        stdout: 'piped',
+        stderr: 'piped',
+      }).spawn()
+      // Listen for process exit
+      this.processes[c].status.then(status=>{
+        console.log(
+          '🟠 Died:',    this.name,
+          'with PID:',   this.processes[p].pid,
+          'and status:', JSON.stringify(status)
+        )
+        this.processes[c] = null
+      })
+      console.log('🚀 Started: ', this.name, 'at PID:', this.processes[c].pid)
+      // Write service stdout and stderr to host stdout
+      this.pipe(this.processes[c].stdout, "stdout")
+      this.pipe(this.processes[c].stderr, "stderr")
+    }
+    return await this.state()
+  }
+  async pause () {
+    console.log('🟠 Stopping:', this.name)
+    if (this.processes.all(x=>Boolean(x)===false)) {
+      console.log('🟠 Already stopped:', this.name)
+      return false
+    }
+    await Promise.all(this.commands.map(async ([command])=>{
+      await new Deno.Command('pkill', { args: ['-9', command] }).spawn().status
+      console.log('🟠 Stopped:', this.name, 'at PID:', pid)
+    }))
+    return await this.state()
+  }
+  routes () {
+    return {
+      '/':      async (_) => respond(200, await this.state()),
+      '/start': async (_) => respond(200, await this.start()),
+      '/pause': async (_) => respond(200, await this.pause()),
+    }
+  }
+}

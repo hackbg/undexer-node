@@ -7,11 +7,15 @@ if (import.meta.main) main()
 function main () {
   initialize()
   const { HOST, PORT, PROXY, LOCAL, REMOTE } = environment({
-    HOST:   "0.0.0.0",
-    PORT:   "25552",
-    PROXY:  "simpleproxy",
-    LOCAL:  ":26666",
-    REMOTE: "namada-peer-housefire.mandragora.io:26656",
+    HOST:    "0.0.0.0",
+    PORT:    "25552",
+    PROXY:   "simpleproxy",
+    LOCAL1:  ":26666",
+    LOCAL2:  ":26667",
+    LOCAL3:  ":26668",
+    REMOTE1: "74.50.93.254:26656",
+    REMOTE2: "64.118.250.82:46656",
+    REMOTE3: "138.197.133.118:26656",
   })
   const name = `Sync proxy (${LOCAL} -> ${REMOTE})`
   const service = new Service(name, PROXY, '-v', '-L', LOCAL, '-R', REMOTE)

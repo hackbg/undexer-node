@@ -95,24 +95,24 @@ services:
   node-in:
     entrypoint:  /control_in.js
     networks:    [ external, internal ]
-    image:       oci.hack.bg/namada:userv
+    image:       ghcr.io/hackbg/namada-for-undexer:main
     init:        true
     restart:     unless-stopped
   node:
     entrypoint:  /control_node.js
     networks:    [ internal ]
-    image:       oci.hack.bg/namada:userv
+    image:       ghcr.io/hackbg/namada-for-undexer:main
     restart:     unless-stopped
   node-out:
     entrypoint:  /control_out.js
     networks:    [ external, internal ]
-    image:       oci.hack.bg/namada:userv
+    image:       ghcr.io/hackbg/namada-for-undexer:main
     init:        true
     restart:     unless-stopped
   node-status:
     entrypoint:  /control_status.js
     networks:    [ external, internal ]
-    image:       oci.hack.bg/namada:userv
+    image:       ghcr.io/hackbg/namada-for-undexer:main
     init:        true
     restart:     unless-stopped
     ports:       [ "127.0.0.1:25555:25555" ]

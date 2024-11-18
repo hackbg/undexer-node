@@ -35,4 +35,3 @@ ARG PEERS
 ENV PEERS=${PEERS}
 RUN echo "Configuring persistent_peers: $PEERS"
 RUN sed -i.bak "s#^persistent_peers *=.*#persistent_peers = \"$PEERS\"#" $CONFIG_DIR
-

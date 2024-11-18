@@ -1,5 +1,9 @@
 {
   "imports": {
     "@std/streams": "jsr:@std/streams@^1.0.5"
+  },
+  "lock": {
+    "path": "./deno.lock",
+    "frozen": true
   }
 }

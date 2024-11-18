@@ -16,7 +16,7 @@ function main () {
     HOST:     "0.0.0.0",
     PORT:     "25551",
     NAMADA:   "namadan",
-    CHAIN_ID: "housefire-reduce.e51ecf4264fc3",
+    CHAIN_ID: "namada-dryrun.abaaeaf7b78cb3ac",
     NODE_OUT: "http://node-out:25552"
   })
   const service = new NamadaService(NAMADA, CHAIN_ID)

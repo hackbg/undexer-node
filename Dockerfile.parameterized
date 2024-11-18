@@ -10,13 +10,6 @@ RUN cd /tmp \
  && mv deno /usr/local/bin \
  && rm deno-x86_64-unknown-linux-gnu.zip
 
-# Install control script
-ADD deno.json deno.lock deps.js /
-RUN deno cache --import-map=/deno.json --lock=/deno.lock deps.js
-ADD lib.js services.js control.js control_status.js control_in.js control_node.js control_out.js control_out_proxy.js /
-ENTRYPOINT [ "/bin/bash" ]
-CMD [ "-c", "/control.js" ]
-
 # Configure node
 USER namada
 ENV NAMADA_NETWORK_CONFIGS_SERVER="https://testnet.namada-dryrun.tududes.com/configs"
@@ -35,3 +28,10 @@ ARG PEERS
 ENV PEERS=${PEERS}
 RUN echo "Configuring persistent_peers: $PEERS"
 RUN sed -i.bak "s#^persistent_peers *=.*#persistent_peers = \"$PEERS\"#" $CONFIG_DIR
+
+# Install control script
+ADD deno.json deno.lock deps.js /
+RUN deno cache --import-map=/deno.json --lock=/deno.lock deps.js
+ADD lib.js services.js control.js control_status.js control_in.js control_node.js control_out.js control_out_proxy.js /
+ENTRYPOINT [ "/bin/bash" ]
+CMD [ "-c", "/control.js" ]

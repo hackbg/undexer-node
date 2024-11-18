@@ -32,6 +32,78 @@ steps:
   - echo "$PASS" | docker login -u "$USER" --password-stdin https://oci.hack.bg
   - export IMAGE="$NAME:$(cat BRANCH | tr '/' '_' | tr '\n' ' ')"
   - 'printf "Name: $NAME\nImage: $IMAGE\n"'
+
+  # Pull previous layers from cache
   - docker pull "$IMAGE" || true
-  - docker build --network=host --cache-to=type=inline --cache-from="$IMAGE" -t "$IMAGE" .
-  - docker push "$IMAGE"
+
+  # Default image
+  - docker build --push --network=host --cache-to=type=inline --cache-from="$IMAGE" -f Dockerfile -t "$IMAGE" .
+
+  # Parameterized images:
+  - export PARAMETERIZED="--push --network=host --cache-to=type=inline --cache-from="$IMAGE" -f Dockerfile.parameterized"
+
+
+  # Image that connects to all known peers directly
+  - export VARIANT="$IMAGE-all-direct"
+  - echo "Building $VARIANT"
+  - >+
+    docker build $PARAMETERIZED -t "$VARIANT"
+    --build-arg PEERS=tcp://11e59922aa59989811fdb3bc1e22b85cbbe5a14e@namada-peer.mandragora.io:26656,tcp://05309c2cce2d163027a47c662066907e89cd6b99@74.50.93.254:26656,tcp://2bf5cdd25975c239e8feb68153d69c5eec004fdb@64.118.250.82:46656,tcp://75825cae136729aaf519ad62684b9b796c5593fd@138.197.133.118:26656 .
+
+  # Image that connects to all known peers throgh green proxy with default config
+  - export VARIANT="$IMAGE-all-green"
+  - echo "Building $VARIANT"
+  - >+
+    docker build $PARAMETERIZED -t "$VARIANT"
+    --build-arg PEERS=tcp://11e59922aa59989811fdb3bc1e22b85cbbe5a14e@node-out-green:26666,tcp://05309c2cce2d163027a47c662066907e89cd6b99@node-out-green:26667,tcp://2bf5cdd25975c239e8feb68153d69c5eec004fdb@node-out-green:26668,tcp://75825cae136729aaf519ad62684b9b796c5593fd@node-out-green:26669 .
+
+  # Image that connects to all known peers throgh blue proxy with default config
+  - export VARIANT="$IMAGE-all-blue"
+  - echo "Building $VARIANT"
+  - >+
+    docker build $PARAMETERIZED -t "$VARIANT"
+    --build-arg PEERS=tcp://11e59922aa59989811fdb3bc1e22b85cbbe5a14e@node-out-blue:26666,tcp://05309c2cce2d163027a47c662066907e89cd6b99@node-out-blue:26667,tcp://2bf5cdd25975c239e8feb68153d69c5eec004fdb@node-out-blue:26668,tcp://75825cae136729aaf519ad62684b9b796c5593fd@node-out-blue:26669 .
+
+
+  # Image that connects to Mandragora peer directly
+  - export VARIANT="$IMAGE-mandragora-direct"
+  - echo "Building $VARIANT"
+  - >+
+    docker build $PARAMETERIZED -t "$VARIANT"
+    --build-arg PEERS=tcp://11e59922aa59989811fdb3bc1e22b85cbbe5a14e@namada-peer.mandragora.io:26656 .
+
+  # Image that connects to Mandragora peer throgh green proxy with default config
+  - export VARIANT="$IMAGE-mandragora-green"
+  - echo "Building $VARIANT"
+  - >+
+    docker build $PARAMETERIZED -t "$VARIANT"
+    --build-arg PEERS=tcp://11e59922aa59989811fdb3bc1e22b85cbbe5a14e@node-out-green:26666 .
+
+  # Image that connects to Mandragora peer throgh blue proxy with default config
+  - export VARIANT="$IMAGE-mandragora-blue"
+  - echo "Building $VARIANT"
+  - >+
+    docker build $PARAMETERIZED -t "$VARIANT"
+    --build-arg PEERS=tcp://11e59922aa59989811fdb3bc1e22b85cbbe5a14e@node-out-blue:26666 .
+
+
+  # Image that connects to Tududes peers directly
+  - export VARIANT="$IMAGE-tududes-direct"
+  - echo "Building $VARIANT"
+  - >+
+    docker build $PARAMETERIZED -t "$VARIANT"
+    --build-arg PEERS=tcp://05309c2cce2d163027a47c662066907e89cd6b99@74.50.93.254:26656,tcp://2bf5cdd25975c239e8feb68153d69c5eec004fdb@64.118.250.82:46656,tcp://75825cae136729aaf519ad62684b9b796c5593fd@138.197.133.118:26656 .
+
+  # Image that connects to Tududes peers throgh green proxy with default config
+  - export VARIANT="$IMAGE-tududes-green"
+  - echo "Building $VARIANT"
+  - >+
+    docker build $PARAMETERIZED -t "$VARIANT"
+    --build-arg PEERS=tcp://05309c2cce2d163027a47c662066907e89cd6b99@node-out-green:26667,tcp://2bf5cdd25975c239e8feb68153d69c5eec004fdb@node-out-green:26668,tcp://75825cae136729aaf519ad62684b9b796c5593fd@node-out-green:26669 .
+
+  # Image that connects to Tududes peers throgh blue proxy with default config
+  - export VARIANT="$IMAGE-tududes-blue"
+  - echo "Building $VARIANT"
+  - >+
+    docker build $PARAMETERIZED -t "$VARIANT"
+    --build-arg PEERS=tcp://05309c2cce2d163027a47c662066907e89cd6b99@node-out-blue:26667,tcp://2bf5cdd25975c239e8feb68153d69c5eec004fdb@node-out-blue:26668,tcp://75825cae136729aaf519ad62684b9b796c5593fd@node-out-blue:26669 .

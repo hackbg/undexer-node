@@ -22,34 +22,25 @@ async function main () {
 async function run (localHost, controlPort, proxyConfig) {
   // Flag to allow/disallow connections
   let canConnect = true
-  // List of currently open connections to close
-  let connections = []
   // Print the proxy config that is in use
   console.log('🟢 Proxy config:', JSON.stringify(proxyConfig, null, 2))
   // Launch control api
   api('MultiSync', localHost, controlPort, {
     // Report status
     ['/'] () {
-      return respond(200, { canConnect, connections: connections.length })
+      return respond(200, { canConnect })
     },
     // Enable connecting
     ['/start'] () {
       console.log('🟢 Enabling new connections')
       canConnect = true
-      return respond(200, { canConnect, connections: connections.length })
+      return respond(200, { canConnect })
     },
     // Disable connecting
     ['/pause'] () {
       console.log('🟠 Disabling new connections')
       canConnect = false
-      if (connections.length > 0) {
-        console.log(`🟠 Closing ${connections.length} open connection(s)`)
-        connections = connections.filter(connection=>{
-          connection.close()
-          return false
-        })
-      }
-      return respond(200, { canConnect, connections: connections.length })
+      return respond(200, { canConnect })
     },
   }, {
     onMessage: async ({ event }) => {
@@ -67,14 +58,13 @@ async function run (localHost, controlPort, proxyConfig) {
     try {
       // For every new client connection:
       for await (const connection of listener) {
-        // If connections are enabled:
+        // If connecting is enabled:
         if (canConnect) {
           console.log(`⏳ ${localPort}->${remoteHost}:${remotePort}: connecting`)
           try {
             // Establish connection to server
             const remote = await Deno.connect({ hostname: remoteHost, port: remotePort })
             // Store connection handle (to close on pause)
-            connections.push(connection)
             console.log(`🟢 ${localPort}->${remoteHost}:${remotePort}: connected`)
             // Proxy client to server and back
             await Promise.all([

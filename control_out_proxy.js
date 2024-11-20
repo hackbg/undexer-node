@@ -22,13 +22,15 @@ async function main () {
 async function run (localHost, controlPort, proxyConfig) {
   // Flag to allow/disallow connections
   let canConnect = true
+  // Collection of active connections to close when pause signal is received
+  const connections = new Set()
   // Print the proxy config that is in use
   console.log('🟢 Proxy config:', JSON.stringify(proxyConfig, null, 2))
   // Launch control api
   api('MultiSync', localHost, controlPort, {
     // Report status
     ['/'] () {
-      return respond(200, { canConnect })
+      return respond(200, { canConnect, connections: connections.size })
     },
     // Enable connecting
     ['/start'] () {
@@ -36,15 +38,23 @@ async function run (localHost, controlPort, proxyConfig) {
         console.log('🟢 Enabling new connections')
         canConnect = true
       }
-      return respond(200, { canConnect })
+      return respond(200, { canConnect, connections: connections.size })
     },
     // Disable connecting
     ['/pause'] () {
       if (canConnect) {
         console.log('🟠 Disabling new connections')
         canConnect = false
+        const connectionsClosed = connections.size
+        if (connectionsClosed > 0) {
+          console.log('Closing', connectionsClosed, 'open connection(s)')
+          for (const connection of connections) {
+            connection.close()
+            connections.delete(connection)
+          }
+        }
       }
-      return respond(200, { canConnect })
+      return respond(200, { canConnect, connections: connections.size, connectionsClosed })
     },
   }, {
     onMessage: async ({ event }) => {
@@ -75,6 +85,8 @@ async function run (localHost, controlPort, proxyConfig) {
               connection.readable.pipeTo(remote.writable),
               remote.readable.pipeTo(connection.writable),
             ])
+            // Collect connection
+            connections.add(connection)
           } catch (e) {
             if (e.code) {
               console.error(`🔴 ${localPort}->${remoteHost}:${remotePort}: ${e.code}`)

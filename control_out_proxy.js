@@ -32,14 +32,18 @@ async function run (localHost, controlPort, proxyConfig) {
     },
     // Enable connecting
     ['/start'] () {
-      console.log('🟢 Enabling new connections')
-      canConnect = true
+      if (!canConnect) {
+        console.log('🟢 Enabling new connections')
+        canConnect = true
+      }
       return respond(200, { canConnect })
     },
     // Disable connecting
     ['/pause'] () {
-      console.log('🟠 Disabling new connections')
-      canConnect = false
+      if (canConnect) {
+        console.log('🟠 Disabling new connections')
+        canConnect = false
+      }
       return respond(200, { canConnect })
     },
   }, {

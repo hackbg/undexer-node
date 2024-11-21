@@ -49,7 +49,7 @@ async function run (localHost, controlPort, proxyConfig) {
         canConnect = false
       }
       if (connections.size > 0) {
-        console.log('Closing', connectionsJustClosed, 'open connection(s)')
+        console.log('Closing', connections.size, 'open connection(s)')
         for (const connection of connections) {
           try {
             connection.close()

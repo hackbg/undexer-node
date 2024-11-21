@@ -27,7 +27,7 @@ function main () {
       const response = await fetch(`${NODE_OUT}/pause`)
       const responseJson = await response.json()
       console.log('🟠 Pause response:', responseJson)
-      canConnect = (await response.json()).canConnect
+      canConnect = responseJson.canConnect
       await new Promise(resolve=>setTimeout(resolve, 100))
     }
   })

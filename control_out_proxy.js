@@ -47,23 +47,23 @@ async function run (localHost, controlPort, proxyConfig) {
       if (canConnect) {
         console.log('🟠 Disabling new connections')
         canConnect = false
-        if (connectionsJustClosed > 0) {
-          console.log('Closing', connectionsJustClosed, 'open connection(s)')
-          for (const connection of connections) {
-            try {
-              connection.close()
-              console.log('Closed:', connection.localAddr, '<->', connection.remoteAddr)
-              connectionsJustClosed++
-            } catch (e) {
-              if (e.name === 'BadResource') {
-                console.log('Already closed:', connection.localAddr, '<->', connection.remoteAddr)
-                connectionsAlreadyClosed++
-              } else {
-                throw e
-              }
+      }
+      if (connections.size > 0) {
+        console.log('Closing', connectionsJustClosed, 'open connection(s)')
+        for (const connection of connections) {
+          try {
+            connection.close()
+            console.log('Closed:', connection.localAddr, '<->', connection.remoteAddr)
+            connectionsJustClosed++
+          } catch (e) {
+            if (e.name === 'BadResource') {
+              console.log('Already closed:', connection.localAddr, '<->', connection.remoteAddr)
+              connectionsAlreadyClosed++
+            } else {
+              throw e
             }
-            connections.delete(connection)
           }
+          connections.delete(connection)
         }
       }
       return respond(200, {

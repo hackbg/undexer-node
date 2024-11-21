@@ -22,7 +22,7 @@ function main () {
   const service = new NamadaService(NAMADA, CHAIN_ID)
   service.events.addEventListener('request-pause', async () => {
     let canConnect = true
-    while (!(canConnect === false)) {
+    while (canConnect) {
       console.log('🟠 Requesting pause until indexer catches up.')
       const response = await fetch(`${NODE_OUT}/pause`)
       const responseJson = await response.json()

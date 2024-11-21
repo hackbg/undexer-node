@@ -76,6 +76,7 @@ async function run (localHost, controlPort, proxyConfig) {
   }, {
     onMessage: async ({ event }) => {
       const data = JSON.parse(event.data)
+      console.log('WS message received:', data)
       if (data.resume) {
         console.log('🟢 Resuming sync...')
         await service.start()

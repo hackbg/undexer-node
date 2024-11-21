@@ -19,6 +19,8 @@ async function main () {
   run(HOST, PORT, parseConfig(CONFIG))
 }
 
+const formatAddr = ({ transport, hostname, port }) => `${transport}://${hostname}:${port}`
+
 async function run (localHost, controlPort, proxyConfig) {
   // Flag to allow/disallow connections
   let canConnect = true
@@ -49,15 +51,16 @@ async function run (localHost, controlPort, proxyConfig) {
         canConnect = false
       }
       if (connections.size > 0) {
-        console.log('Closing', connections.size, 'open connection(s)')
+        console.log('Closing/cleaning up', connections.size, 'connection(s)')
         for (const connection of connections) {
+          const { localAddr, remoteAddr } = connection
           try {
             connection.close()
-            console.log('Closed:', connection.localAddr, '<->', connection.remoteAddr)
+            console.log('Closed:', formatAddr(localAddr), '<->', formatAddr(remoteAddr))
             connectionsJustClosed++
           } catch (e) {
             if (e.name === 'BadResource') {
-              console.log('Already closed:', connection.localAddr, '<->', connection.remoteAddr)
+              console.log('Cleaned up:', formatAddr(localAddr), '<->', formatAddr(remoteAddr))
               connectionsAlreadyClosed++
             } else {
               throw e

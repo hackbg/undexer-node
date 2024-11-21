@@ -42,10 +42,11 @@ async function run (localHost, controlPort, proxyConfig) {
     },
     // Disable connecting
     ['/pause'] () {
+      let connectionsClosed
       if (canConnect) {
         console.log('🟠 Disabling new connections')
         canConnect = false
-        const connectionsClosed = connections.size
+        connectionsClosed = connections.size
         if (connectionsClosed > 0) {
           console.log('Closing', connectionsClosed, 'open connection(s)')
           for (const connection of connections) {
@@ -80,13 +81,13 @@ async function run (localHost, controlPort, proxyConfig) {
             const remote = await Deno.connect({ hostname: remoteHost, port: remotePort })
             // Store connection handle (to close on pause)
             console.log(`🟢 ${localPort}->${remoteHost}:${remotePort}: connected`)
+            // Collect connection to close it on pause
+            connections.add(connection)
             // Proxy client to server and back
             await Promise.all([
               connection.readable.pipeTo(remote.writable),
               remote.readable.pipeTo(connection.writable),
             ])
-            // Collect connection
-            connections.add(connection)
           } catch (e) {
             if (e.code) {
               console.error(`🔴 ${localPort}->${remoteHost}:${remotePort}: ${e.code}`)

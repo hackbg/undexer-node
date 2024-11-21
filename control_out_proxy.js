@@ -50,7 +50,12 @@ async function run (localHost, controlPort, proxyConfig) {
         if (connectionsClosed > 0) {
           console.log('Closing', connectionsClosed, 'open connection(s)')
           for (const connection of connections) {
-            connection.close()
+            try {
+              connection.close()
+              console.log('Closed connection', connection)
+            } catch (e) {
+              console.error('Failed to close connection', connection, 'because of', e)
+            }
             connections.delete(connection)
           }
         }

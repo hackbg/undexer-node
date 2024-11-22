@@ -28,61 +28,58 @@ async function run (localHost, controlPort, proxyConfig) {
   const connections = new Set()
   // Print the proxy config that is in use
   console.log('🟢 Proxy config:', JSON.stringify(proxyConfig, null, 2))
-  // Launch control api
-  api('MultiSync', localHost, controlPort, {
-    // Report status
-    ['/'] () {
-      return respond(200, { canConnect, connections: connections.size })
-    },
-    // Enable connecting
-    ['/start'] () {
-      if (!canConnect) {
-        console.log('🟢 Enabling new connections')
-        canConnect = true
-      }
-      return respond(200, { canConnect, connections: connections.size })
-    },
-    // Disable connecting
-    ['/pause'] () {
-      let connectionsJustClosed = 0
-      let connectionsAlreadyClosed = 0
-      if (canConnect) {
-        console.log('🟠 Disabling new connections')
-        canConnect = false
-      }
-      if (connections.size > 0) {
-        console.log('Closing/cleaning up', connections.size, 'connection(s)')
-        for (const connection of connections) {
-          const { localAddr, remoteAddr } = connection
-          try {
-            connection.close()
-            console.log('Closed:', formatAddr(localAddr), '<->', formatAddr(remoteAddr))
-            connectionsJustClosed++
-          } catch (e) {
-            if (e.name === 'BadResource') {
-              console.log('Cleaned up:', formatAddr(localAddr), '<->', formatAddr(remoteAddr))
-              connectionsAlreadyClosed++
-            } else {
-              throw e
-            }
+  // Handler: report status
+  const status = () => respond(200, { canConnect, connections: connections.size })
+  // Handler: enable proxy
+  const start  = () => {
+    if (!canConnect) {
+      console.log('🟢 Enabling new connections')
+      canConnect = true
+    }
+    return respond(200, { canConnect, connections: connections.size })
+  }
+  // Handler: disable proxy
+  const pause = () => {
+    let connectionsJustClosed = 0
+    let connectionsAlreadyClosed = 0
+    if (canConnect) {
+      console.log('🟠 Disabling new connections')
+      canConnect = false
+    }
+    if (connections.size > 0) {
+      console.log('Closing/cleaning up', connections.size, 'connection(s)')
+      for (const connection of connections) {
+        const { localAddr, remoteAddr } = connection
+        try {
+          connection.close()
+          console.log('Closed:', formatAddr(localAddr), '<->', formatAddr(remoteAddr))
+          connectionsJustClosed++
+        } catch (e) {
+          if (e.name === 'BadResource') {
+            console.log('Cleaned up:', formatAddr(localAddr), '<->', formatAddr(remoteAddr))
+            connectionsAlreadyClosed++
+          } else {
+            throw e
           }
-          connections.delete(connection)
         }
+        connections.delete(connection)
       }
-      return respond(200, {
-        canConnect,
-        connections: connections.size,
-        connectionsJustClosed,
-        connectionsAlreadyClosed
-      })
-    },
-  }, {
-    onMessage: async ({ event }) => {
+    }
+    return respond(200, {
+      canConnect,
+      connections: connections.size,
+      connectionsJustClosed,
+      connectionsAlreadyClosed
+    })
+  }
+  // Launch control api
+  api('MultiSync', localHost, controlPort, { '/': status, '/start': start, '/pause': pause }, {
+    onMessage: ({ event }) => {
       const data = JSON.parse(event.data)
       console.log('WS message received:', data)
       if (data.resume) {
         console.log('🟢 Resuming sync...')
-        await service.start()
+        start()
       }
     }
   })

@@ -59,18 +59,18 @@ function upgradeWebSocket (req, {
     }
   }
 
-  socket.addEventListener("open", () => {
-    console.log("🟢 Client connected to websocket")
+  socket.addEventListener("open", connection => {
+    console.log("🟢 Control socket: client connected.")
     onOpen({ socket, send })
   })
 
   socket.addEventListener("close", () => {
-    console.log("🟠 Client disconnected from websocket")
+    console.log("🟠 Control socket: client disconnected.")
     onClose({ socket, send })
   })
 
   socket.addEventListener("message", (event) => {
-    console.log("🔔 Message received over websocket", event.data)
+    console.log("🔔 Control socket: message received:", event.data)
     onMessage({ socket, send, event })
   })
 

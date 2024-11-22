@@ -6,9 +6,9 @@ function main () {
   const { HOST, PORT, IN, NODE, OUT } = environment({
     HOST: "0.0.0.0",
     PORT: "25555",
-    IN:   "http://node-in:25550",
     NODE: "http://node:25551",
-    OUT:  "http://node-out:25552",
+    IN:   "http://rpc-proxy:25550",
+    OUT:  "http://sync-proxy:25552",
   })
   const checkStatus = url => fetchJSON(url)
     .then(x=>({running: x}))

@@ -23,20 +23,20 @@ available during sync (see [`anoma/namada#3810`](https://github.com/anoma/namada
 <td><code>control_node.js</code></td>
 <td>⚠️ <b>Internal only</b></td>
 <td>No</td>
-<td>Manages the Namada node. <b>MUST run in isolated network (no Internet access except through <code>node-in</code> and <code>node-out</code>).</b>
-Parses node log; when epoch increments, <code>node</code> messages <code>node-out</code>
+<td>Manages the Namada node. <b>MUST run in isolated network (no Internet access except through <code>rpc-proxy</code> and <code>sync-proxy</code>).</b>
+Parses node log; when epoch increments, <code>node</code> messages <code>sync-proxy</code>
 to pause the sync.</td>
 </tr>
 <tr>
-<td><code>node-in</code></td>
-<td><code>control_in.js</code></td>
+<td><code>rpc-proxy</code></td>
+<td><code>rpc_proxy.js</code></td>
 <td>Internal, External</td>
 <td>⚠️ <b>Yes</b></td>
 <td>Allows connections from indexer to node.</td>
 </tr>
 <tr>
-<td><code>node-out</code></td>
-<td><code>control_out.js</code></td>
+<td><code>sync-proxy</code></td>
+<td><code>sync_proxy.js</code></td>
 <td>Internal, External</td>
 <td>⚠️ <b>Yes</b></td>
 <td>Allows connections from node to peers. By pausing the contained proxy,
@@ -44,16 +44,16 @@ node sync is paused, so that the indexer can catch up.</td>
 </tr>
 <tr>
 <td><code>node-status</code></td>
-<td><code>control_status.js</code></td>
+<td><code>status.js</code></td>
 <td>Internal, External</td>
 <td>No</td>
 <td>Manages the other three. When indexing has caught up, Undexer tells <code>node-status</code>
-to resume sync, and <code>node-status</code> tells <code>node-out</code> to restart the proxy.</td>
+to resume sync, and <code>node-status</code> tells <code>sync-proxy</code> to restart the proxy.</td>
 </tr>
 </tbody>
 </table>
 
-Note that `node-in` and `node-out` require an init process in the container
+Note that `rpc-proxy` and `sync-proxy` require an init process in the container
 (`docker run --init`, or `init: true` in `docker-compose.yml`) so that Docker
 is able to reap the zombie processes that are created when the internal
 `simpleproxy` is killed by the managing script.
@@ -91,9 +91,9 @@ services:
     image:       ghcr.io/hackbg/undexer:v4
     restart:     unless-stopped
     depends_on:  { postgres: { condition: service_healthy } }
-    environment: { RPC_URL: "http://node-in:26657" }
-  node-in:
-    entrypoint:  /control_in.js
+    environment: { RPC_URL: "http://rpc-proxy:26657" }
+  rpc-proxy:
+    entrypoint:  /rpc_proxy.js
     networks:    [ external, internal ]
     image:       ghcr.io/hackbg/namada-for-undexer:main
     init:        true
@@ -103,8 +103,8 @@ services:
     networks:    [ internal ]
     image:       ghcr.io/hackbg/namada-for-undexer:main
     restart:     unless-stopped
-  node-out:
-    entrypoint:  /control_out.js
+  sync-proxy:
+    entrypoint:  /sync_proxy.js
     networks:    [ external, internal ]
     image:       ghcr.io/hackbg/namada-for-undexer:main
     init:        true

@@ -17,7 +17,7 @@ function main () {
     PORT:     "25551",
     NAMADA:   "namadan",
     CHAIN_ID: "namada-dryrun.abaaeaf7b78cb3ac",
-    NODE_OUT: "http://node-out:25552"
+    NODE_OUT: "http://sync-proxy:25552"
   })
   const service = new NamadaService(NAMADA, CHAIN_ID)
   service.events.addEventListener('request-pause', async () => {

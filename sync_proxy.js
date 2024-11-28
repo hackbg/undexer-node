@@ -96,20 +96,11 @@ async function run (localHost, controlPort, proxyConfig) {
             console.log(`🟢 ${localPort}->${remoteHost}:${remotePort}: connected`)
             // Collect connection to close it on pause
             connections.add(connection)
-            // Proxy client to server and back, retrying on EINTR
-            while (true) {
-              try {
-                await Promise.all([
-                  connection.readable.pipeTo(remote.writable),
-                  remote.readable.pipeTo(connection.writable),
-                ])
-                break
-              } catch (e) {
-                if (e.code !== 'EINTR') {
-                  throw e
-                }
-              }
-            }
+            // Proxy client to server and back
+            await Promise.all([
+              connection.readable.pipeTo(remote.writable),
+              remote.readable.pipeTo(connection.writable),
+            ])
           } catch (e) {
             if (e.code) {
               console.error(`🔴 ${localPort}->${remoteHost}:${remotePort}: ${e.code}`)

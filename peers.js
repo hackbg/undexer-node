@@ -22,7 +22,7 @@ function build (color) {
   } else {
     peers = Object.entries(peerMap).map(([port, peer])=>{
       peer = new URL(peer)
-      return `tcp://${peer.username}:${color}-sync-proxy:${port}`
+      return `tcp://${peer.username}@${color}-sync-proxy:${port}`
     }).join(',')
   }
   console.log(peers)

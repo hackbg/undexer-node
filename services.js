@@ -115,7 +115,7 @@ export class Service extends LogPipe {
       return false
     }
     const { pid } = this.process
-    await new Deno.Command('pkill', { args: ['-9', 'simpleproxy'] }).spawn().status
+    await new Deno.Command('pkill', { args: ['-9', this.command] }).spawn().status
     console.log('🟠 Stopped:', this.name, 'at PID:', pid)
     return await this.state()
   }

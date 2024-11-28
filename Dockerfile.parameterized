@@ -1,7 +1,18 @@
-FROM ghcr.io/anoma/namada:v0.46.0 AS namada
+FROM ghcr.io/anoma/namada:v0.45.1 AS namada-0.45.1
+FROM ghcr.io/anoma/namada:v0.46.0 AS namada-0.46.0
+
+USER root
+# Install both versions of Namada from before and after hard fork
+COPY --from=namada-0.45.1 /usr/local/bin/namada /usr/local/bin/namada-0.45.1
+COPY --from=namada-0.45.1 /usr/local/bin/namadac /usr/local/bin/namadac-0.45.1
+COPY --from=namada-0.45.1 /usr/local/bin/namadan /usr/local/bin/namadan-0.45.1
+COPY --from=namada-0.45.1 /usr/local/bin/namadaw /usr/local/bin/namadaw-0.45.1
+RUN mv /usr/local/bin/namada  /usr/local/bin/namada-0.46.0 \
+ && mv /usr/local/bin/namadac /usr/local/bin/namadac-0.46.0 \
+ && mv /usr/local/bin/namadan /usr/local/bin/namadan-0.46.0 \
+ && mv /usr/local/bin/namadaw /usr/local/bin/namadaw-0.46.0
 
 # Install system dependencies
-USER root
 RUN apt update \
  && apt install -y vim curl wget unzip procps simpleproxy jq less iputils-ping iproute2 tcpdump strace netcat-traditional
 RUN cd /tmp \
@@ -17,7 +28,7 @@ ENV CHAIN_ID="namada-dryrun.abaaeaf7b78cb3ac"
 ENV DATA_DIR="/home/namada/.local/share/namada/$CHAIN_ID"
 ENV WASM_DIR="$DATA_DIR/wasm"
 ENV CONFIG_DIR="$DATA_DIR/config.toml"
-RUN namadac utils join-network --chain-id $CHAIN_ID --wasm-dir $WASM_DIR
+RUN namadac-0.45.1 utils join-network --chain-id $CHAIN_ID --wasm-dir $WASM_DIR
 RUN sed -i.bak "s#^log_level *=.*#log_level = \"debug\"#" $CONFIG_DIR
 RUN sed -i.bak "s#^laddr = \"tcp://127.0.0.1:26657\"#laddr = \"tcp://0.0.0.0:26657\"#" $CONFIG_DIR
 RUN sed -i.bak "s#^persistent_peers_max_dial_period *=.*#persistent_peers_max_dial_period = \"5000ms\"#" $CONFIG_DIR
@@ -37,4 +48,4 @@ ADD deno.json deno.lock deps.js /
 RUN deno cache --import-map=/deno.json --lock=/deno.lock deps.js
 ADD lib.js services.js status.js rpc_proxy.js control_node.js sync_proxy.js peers.json /
 ENTRYPOINT [ "/bin/bash" ]
-CMD [ "-c", "/control.js" ]
+CMD [ "-c", "/control_node.js" ]

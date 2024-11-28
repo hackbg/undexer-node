@@ -25,11 +25,14 @@ steps:
     DOCKER_DATA: "/cache/docker"
     DOCKER_HOST: "tcp://127.0.0.1:2375"
   commands:
+  # Launch Docker daemon
   - nohup dockerd --tls=false --dns 1.1.1.1 --rootless=true --bridge=none --iptables=false --data-root "$DOCKER_DATA" --host="$DOCKER_HOST" --registry-mirror "$MIRROR" &
   - sleep 10
   - docker version; docker info
   - echo "\nLooking around...\n"; whoami; pwd; ls -al
   - echo "$PASS" | docker login -u "$USER" --password-stdin https://oci.hack.bg
+
+  # Build image for managed Namada node, RPC proxy, and sync proxy
   - export IMAGE="$NAME:$(cat BRANCH | tr '/' '_' | tr '\n' ' ')"
   - 'printf "Name: $NAME\nImage: $IMAGE\n"'
 

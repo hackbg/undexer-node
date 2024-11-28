@@ -1,22 +1,18 @@
-#!/usr/bin/env -S deno run --allow-net --allow-env=HOST,PORT,CONFIG
-
+#!/usr/bin/env -S deno run --allow-net --allow-env=HOST,PORT,CONFIG --allow-read=peers.json
+import peerMap from './peers.json' with { type: 'json' }
 import { initialize, environment, api, respond } from './lib.js'
 
 if (import.meta.main) main()
 
-async function main () {
+function main () {
   const t0 = initialize()
   const { HOST, PORT, CONFIG } = environment({
-    HOST: '0.0.0.0',
-    PORT: '25552',
-    CONFIG: [
-      ['26666', '65.108.193.224:26656' ].join('='), // namada-peer.mandragora.io (11e59922aa59989811fdb3bc1e22b85cbbe5a14e)
-      ['26667', '74.50.93.254:26656'   ].join('='), // tududes #1 (05309c2cce2d163027a47c662066907e89cd6b99)
-      ['26668', '64.118.250.82:46656'  ].join('='), // tududes #2 (2bf5cdd25975c239e8feb68153d69c5eec004fdb)
-      ['26669', '138.197.133.118:26656'].join('='), // tududes #3 (75825cae136729aaf519ad62684b9b796c5593fd)
-    ].join(',')
+    HOST:   '0.0.0.0',
+    PORT:   '25552',
+    CONFIG: Object.entries(peerMap).map(([port, url])=>`${port}=${new URL(url).host}`).join(',')
   })
-  run(HOST, PORT, parseConfig(CONFIG))
+  const config = parseConfig(CONFIG)
+  run(HOST, PORT, config)
 }
 
 const formatAddr = ({ transport, hostname, port }) => `${transport}://${hostname}:${port}`

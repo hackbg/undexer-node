@@ -27,6 +27,6 @@ RUN sed -i.bak "s#^laddr = \"tcp://127.0.0.1:26657\"#laddr = \"tcp://0.0.0.0:266
 # Install control script
 ADD deno.json deno.lock deps.js /
 RUN deno cache --import-map=/deno.json --lock=/deno.lock deps.js
-ADD lib.js services.js status.js rpc_proxy.js control_node.js sync_proxy.js /
+ADD lib.js services.js status.js rpc_proxy.js control_node.js sync_proxy.js peers.json /
 ENTRYPOINT [ "/bin/bash" ]
 CMD [ "-c", "/control.js" ]

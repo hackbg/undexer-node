@@ -1,4 +1,4 @@
-FROM ghcr.io/anoma/namada:v0.45.1 AS namada
+FROM ghcr.io/anoma/namada:v0.46.0 AS namada
 
 # Install system dependencies
 USER root

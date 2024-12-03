@@ -12,8 +12,8 @@ RUN cd /tmp \
 
 # Configure node
 USER namada
-ENV NAMADA_NETWORK_CONFIGS_SERVER="https://testnet.namada-dryrun.tududes.com/configs"
-ENV CHAIN_ID="namada-dryrun.abaaeaf7b78cb3ac"
+ENV NAMADA_NETWORK_CONFIGS_SERVER="https://github.com/anoma/namada-mainnet-genesis/releases/download/mainnet-genesis"
+ENV CHAIN_ID="namada.5f5de2dd1b88cba30586420"
 ENV DATA_DIR="/home/namada/.local/share/namada/$CHAIN_ID"
 ENV WASM_DIR="$DATA_DIR/wasm"
 ENV CONFIG_DIR="$DATA_DIR/config.toml"

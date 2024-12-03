@@ -1,4 +1,4 @@
-#!/usr/bin/env -S deno run --allow-net --allow-run=namadan-0.45.1,namadan-0.46.0,pkill,pgrep --allow-env=HOST,PORT,NAMADA,CHAIN_ID,NODE_OUT --allow-read=/home/namada/.local/share/namada --allow-write=/home/namada/.local/share/namada
+#!/usr/bin/env -S deno run --allow-net --allow-run=namadan-1.0.0,pkill,pgrep --allow-env=HOST,PORT,NAMADA,CHAIN_ID,NODE_OUT --allow-read=/home/namada/.local/share/namada --allow-write=/home/namada/.local/share/namada
 // This service runs the node. In order for the indexer to have time to fetch all data
 // before epoched data is pruned, this service parses the log output of the node, and
 // when the epoch has incremented it tells the outgoing proxy to cut off outgoing
@@ -16,7 +16,7 @@ function main () {
   const { HOST, PORT, NAMADA, CHAIN_ID, NODE_OUT } = environment({
     HOST:     "0.0.0.0",
     PORT:     "25551",
-    NAMADA:   "0=namadan-0.45.1,182000=namadan-0.46.0",
+    NAMADA:   "0=namadan-1.0.0",
     CHAIN_ID: "namada-dryrun.abaaeaf7b78cb3ac",
     NODE_OUT: "http://sync-proxy:25552"
   })

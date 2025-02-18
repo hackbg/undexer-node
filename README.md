@@ -93,18 +93,18 @@ services:
     depends_on:  { postgres: { condition: service_healthy } }
     environment: { RPC_URL: "http://rpc-proxy:26657" }
   rpc-proxy:
-    entrypoint:  /rpc_proxy.js
+    entrypoint:  /srv/rpc_proxy.js
     networks:    [ external, internal ]
     image:       ghcr.io/hackbg/namada-for-undexer:main
     init:        true
     restart:     unless-stopped
   node:
-    entrypoint:  /control_node.js
+    entrypoint:  /srv/control_node.js
     networks:    [ internal ]
     image:       ghcr.io/hackbg/namada-for-undexer:main
     restart:     unless-stopped
   sync-proxy:
-    entrypoint:  /sync_proxy.js
+    entrypoint:  /srv/sync_proxy.js
     networks:    [ external, internal ]
     image:       ghcr.io/hackbg/namada-for-undexer:main
     init:        true

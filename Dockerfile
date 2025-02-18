@@ -1,32 +1,46 @@
-FROM ghcr.io/anoma/namada:v0.46.0 AS namada
-
-# Install system dependencies
+# Install all versions of Namada across hard forks:
+FROM ghcr.io/anoma/namada:v1.0.0 AS namada-1.0.0
+FROM ghcr.io/anoma/namada:v1.1.2 AS namada-1.1.2
 USER root
-RUN apt update \
- && apt install -y vim curl wget unzip procps simpleproxy jq less iputils-ping iproute2 tcpdump strace
-RUN cd /tmp \
- && wget https://github.com/denoland/deno/releases/download/v1.46.3/deno-x86_64-unknown-linux-gnu.zip \
- && unzip deno-x86_64-unknown-linux-gnu.zip \
- && mv deno /usr/local/bin \
- && rm deno-x86_64-unknown-linux-gnu.zip
+RUN mv /usr/local/bin/namada   /usr/local/bin/namada-1.1.2 \
+ && mv /usr/local/bin/namadac /usr/local/bin/namadac-1.1.2 \
+ && mv /usr/local/bin/namadan /usr/local/bin/namadan-1.1.2 \
+ && mv /usr/local/bin/namadaw /usr/local/bin/namadaw-1.1.2
+COPY --from=namada-1.0.0 /usr/local/bin/namada   /usr/local/bin/namada-1.0.0
+COPY --from=namada-1.0.0 /usr/local/bin/namadac /usr/local/bin/namadac-1.0.0
+COPY --from=namada-1.0.0 /usr/local/bin/namadan /usr/local/bin/namadan-1.0.0
+COPY --from=namada-1.0.0 /usr/local/bin/namadaw /usr/local/bin/namadaw-1.0.0
+
+# Create and enter service root directory (where our sources will be installed)
+RUN mkdir -p /srv
+WORKDIR /srv
+
+# Install OS packages
+ADD build/deps.sh .
+RUN /srv/deps.sh && rm /srv/deps.sh
+
+# Install Deno
+ADD build/deno.sh .
+RUN /srv/deno.sh && rm /srv/deno.sh
 
 # Configure node
 USER namada
+ARG PEERS
+ENV PEERS=${PEERS}
 ENV NAMADA_NETWORK_CONFIGS_SERVER="https://github.com/anoma/namada-mainnet-genesis/releases/download/mainnet-genesis"
 ENV CHAIN_ID="namada.5f5de2dd1b88cba30586420"
 ENV DATA_DIR="/home/namada/.local/share/namada/$CHAIN_ID"
 ENV WASM_DIR="$DATA_DIR/wasm"
 ENV CONFIG_DIR="$DATA_DIR/config.toml"
-RUN namadac utils join-network --chain-id $CHAIN_ID --wasm-dir $WASM_DIR
-RUN sed -i.bak "s#^log_level *=.*#log_level = \"debug\"#" $CONFIG_DIR
-RUN sed -i.bak "s#^persistent_peers *=.*#persistent_peers = \"tcp://11e59922aa59989811fdb3bc1e22b85cbbe5a14e@namada-peer.mandragora.io:26656\"#" $CONFIG_DIR
-RUN sed -i.bak "s#^laddr = \"tcp://127.0.0.1:26657\"#laddr = \"tcp://0.0.0.0:26657\"#" $CONFIG_DIR
-#RUN sed -ie "s#^seeds *=.*#seeds = \"tcp://836a25b5c465352adf17430135888689b9a0f1d6@namada-seed-housefire.mandragora.io:21656\"#" $CONFIG_DIR
-#ADD addrbook.json $DATA_DIR/cometbft/config/addrbook.json
+ADD build/init.sh .
+RUN /srv/init.sh
+USER 0
+RUN rm /srv/init.sh
+USER namada
 
 # Install control script
 ADD deno.json deno.lock deps.js /
 RUN deno cache --import-map=/deno.json --lock=/deno.lock deps.js
-ADD lib.js services.js status.js rpc_proxy.js control_node.js sync_proxy.js peers.json /
+ADD src/* .
 ENTRYPOINT [ "/bin/bash" ]
-CMD [ "-c", "/control.js" ]
+CMD [ "-c", "/srv/control_node.js" ]

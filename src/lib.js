@@ -1,4 +1,4 @@
-import { TextLineStream } from "./deps.js"
+import { TextLineStream } from "../deps.js"
 
 export function initialize () {
   // Launch timestamp

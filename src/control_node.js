@@ -4,8 +4,8 @@
 // when the epoch has incremented it tells the outgoing proxy to cut off outgoing
 // connections from the node. Once the indexer is done with the current epoch, it tells
 // the outgoing service to resume.
+import { TextLineStream } from '../deps.js'
 import { initialize, environment, api } from './lib.js'
-import { TextLineStream } from './deps.js'
 import { Service } from './services.js'
 
 if (import.meta.main) setTimeout(main, 0)

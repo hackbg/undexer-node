@@ -8,6 +8,8 @@ import { TextLineStream } from '../deps.js'
 import { initialize, environment, api } from './lib.js'
 import { Service } from './services.js'
 
+const DEFAULT_NAMADAS = "0=namadan-1.0.0,894000=namadan-1.1.2"
+
 if (import.meta.main) setTimeout(main, 0)
 
 function main () {
@@ -16,7 +18,7 @@ function main () {
   const { HOST, PORT, NAMADA, CHAIN_ID, NODE_OUT } = environment({
     HOST:     "0.0.0.0",
     PORT:     "25551",
-    NAMADA:   "0=namadan-1.0.0,894000=namadan-1.1.2",
+    NAMADA:   DEFAULT_NAMADAS,
     CHAIN_ID: "namada.5f5de2dd1b88cba30586420",
     NODE_OUT: "http://sync-proxy:25552"
   })
@@ -93,7 +95,7 @@ function main () {
 
 export class NamadaService extends Service {
 
-  constructor (namadas = "0=namadan-0.45.1,182000=namadan-0.46.0", chainId) {
+  constructor (namadas = DEFAULT_NAMADAS, chainId) {
     // Multiple versions of Namada to support hard forks
     namadas = Object.fromEntries(namadas
       .split(',')

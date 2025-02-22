@@ -40,7 +40,7 @@ USER namada
 
 # Install control script
 ADD deno.json deno.lock deps.js /
-RUN deno cache --import-map=/deno.json --lock=/deno.lock deps.js
+RUN deno cache --import-map=/deno.json --lock=/deno.lock /deps.js
 ADD src/* .
 ENTRYPOINT [ "/bin/bash" ]
 CMD [ "-c", "/srv/control_node.js" ]

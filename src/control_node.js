@@ -35,6 +35,7 @@ function main () {
     for (const hardfork of Object.keys(service.namadas)) {
       if (block > hardfork) {
         namada = service.namadas[hardfork]
+        console.log('🟠 Switching over to', namada)
         break
       }
     }

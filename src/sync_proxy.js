@@ -24,6 +24,22 @@ async function run (localHost, controlPort, proxyConfig) {
   const connections = new Set()
   // Print the proxy config that is in use
   console.log('🟢 Proxy config:', JSON.stringify(proxyConfig, null, 2))
+  // Test the configured peers
+  Promise.all(Object.values(proxyConfig).map(async ({remoteHost, remotePort})=>{
+    console.log(`⌛ Checking peer: ${remoteHost}:${remotePort}`)
+    try {
+      const conn   = await Deno.connect({ hostname: remoteHost, port: remotePort })
+      const buffer = new Uint8Array(0x100)
+      const length = await conn.read(buffer)
+      if ((buffer[0] === 0x22) && (buffer[1] === 0x0a) && (buffer[2] === 0x20)) {
+        console.log(`🟢 Valid peer: ${remoteHost}:${remotePort}`)
+      } else {
+        console.warn(`🟠 Invalid peer: ${remoteHost}:${remotePort}, returned:`, buffer)
+      }
+    } catch (e) {
+      console.warn(`🔴 Dead peer: ${remoteHost}:${remotePort}`, e)
+    }
+  }))
   // Handler: report status
   const status = () => respond(200, { canConnect, connections: connections.size })
   // Handler: enable proxy

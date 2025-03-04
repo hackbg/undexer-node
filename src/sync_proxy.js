@@ -34,10 +34,10 @@ async function run (localHost, controlPort, proxyConfig) {
       if ((buffer[0] === 0x22) && (buffer[1] === 0x0a) && (buffer[2] === 0x20)) {
         console.log(`🟢 Valid peer: ${remoteHost}:${remotePort}`)
       } else {
-        console.warn(`🟠 Invalid peer: ${remoteHost}:${remotePort}, returned:`, buffer)
+        console.log(`🟠 Invalid peer: ${remoteHost}:${remotePort}, returned:`, buffer)
       }
     } catch (e) {
-      console.warn(`🔴 Dead peer: ${remoteHost}:${remotePort}`, e)
+      console.log(`🔴 Dead peer: ${remoteHost}:${remotePort}`, e)
     }
   }))
   // Handler: report status

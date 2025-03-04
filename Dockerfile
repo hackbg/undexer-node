@@ -1,11 +1,11 @@
-# Install all versions of Namada across hard forks:
+# Install all required versions of Namada across hard forks:
 FROM ghcr.io/anoma/namada:v1.0.0 AS namada-1.0.0
-FROM ghcr.io/anoma/namada:v1.1.2 AS namada-1.1.2
+FROM ghcr.io/anoma/namada:v1.1.1 AS namada-1.1.1
 USER root
-RUN mv /usr/local/bin/namada   /usr/local/bin/namada-1.1.2 \
- && mv /usr/local/bin/namadac /usr/local/bin/namadac-1.1.2 \
- && mv /usr/local/bin/namadan /usr/local/bin/namadan-1.1.2 \
- && mv /usr/local/bin/namadaw /usr/local/bin/namadaw-1.1.2
+RUN mv /usr/local/bin/namada   /usr/local/bin/namada-1.1.1 \
+ && mv /usr/local/bin/namadac /usr/local/bin/namadac-1.1.1 \
+ && mv /usr/local/bin/namadan /usr/local/bin/namadan-1.1.1 \
+ && mv /usr/local/bin/namadaw /usr/local/bin/namadaw-1.1.1
 COPY --from=namada-1.0.0 /usr/local/bin/namada   /usr/local/bin/namada-1.0.0
 COPY --from=namada-1.0.0 /usr/local/bin/namadac /usr/local/bin/namadac-1.0.0
 COPY --from=namada-1.0.0 /usr/local/bin/namadan /usr/local/bin/namadan-1.0.0

@@ -1,4 +1,4 @@
-#!/usr/bin/env -S deno run --allow-net --allow-run=namadan-1.0.0,namadan-1.1.2,pkill,pgrep --allow-env=HOST,PORT,NAMADA,CHAIN_ID,NODE_OUT --allow-read=/home/namada/.local/share/namada --allow-write=/home/namada/.local/share/namada
+#!/usr/bin/env -S deno run --allow-net --allow-run=namadan-1.0.0,namadan-1.1.1,pkill,pgrep --allow-env=HOST,PORT,NAMADA,CHAIN_ID,NODE_OUT --allow-read=/home/namada/.local/share/namada --allow-write=/home/namada/.local/share/namada
 // This service runs the node. In order for the indexer to have time to fetch all data
 // before epoched data is pruned, this service parses the log output of the node, and
 // when the epoch has incremented it tells the outgoing proxy to cut off outgoing
@@ -8,7 +8,7 @@ import { TextLineStream } from '../deps.js'
 import { initialize, environment, api } from './lib.js'
 import { Service } from './services.js'
 
-const DEFAULT_NAMADAS = "0=namadan-1.0.0,894000=namadan-1.1.2"
+const DEFAULT_NAMADAS = "0=namadan-1.0.0,894000=namadan-1.1.1"
 
 if (import.meta.main) setTimeout(main, 0)
 

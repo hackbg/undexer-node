@@ -1,4 +1,5 @@
 #!/bin/sh
+set -e
 namadac-1.0.0 utils join-network --chain-id "$CHAIN_ID" --wasm-dir "$WASM_DIR"
 sed -i.bak "s#^log_level *=.*#log_level = \"debug\"#" "$CONFIG_DIR"
 sed -i.bak "s#^laddr = \"tcp://127.0.0.1:26657\"#laddr = \"tcp://0.0.0.0:26657\"#" "$CONFIG_DIR"

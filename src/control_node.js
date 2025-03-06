@@ -33,15 +33,15 @@ function main () {
     let namada = service.namadas[0n]
     // Find the next version to run
     for (const hardfork of Object.keys(service.namadas)) {
-      console.log('Switchover check:', block, hardfork)
-      if (BigInt(block) > BigInt(hardfork)) {
-        namada = service.namadas[hardfork]
-        console.log('🟠 Switching over to', namada)
+      console.log(`Switchover check (${block}): ${hardfork} = ${service.namadas[hardfork]}`)
+      namada = service.namadas[hardfork]
+      if (BigInt(block) < BigInt(hardfork)) {
         break
       }
     }
     // If the next version is different to the current one, launch it
     if (namada != service.namada) {
+      console.log('🟠 Switching over to', namada)
       await service.pause()
       service.namada = namada
       await service.start()

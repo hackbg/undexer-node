@@ -1,3 +1,21 @@
+# Build the height querying utility
+FROM rust:slim-bookworm@sha256:1b2d3c90bad6287266377cf9e7aa2c80001ae632dff3085284aee1db9a13ea2f AS util
+  #USER 0
+  #RUN apk add g++-aarch64-none-elf clang19-libclang
+  #USER 1000
+  RUN apt update \
+   && apt install -y build-essential libclang-19-dev
+  WORKDIR /build/util
+  COPY ./util/Cargo.toml ./util/Cargo.lock .
+  RUN cat Cargo.toml \
+   && mkdir -p src \
+   && touch src/lib.rs \
+   && PATH=$PATH:~/.cargo/bin cargo fetch
+  COPY ./util/src ./src
+  RUN PATH=$PATH:~/.cargo/bin cargo build --release \
+   && mv target/release/undexer-db-util / \
+   && rm -rf target
+
 # Install all required versions of Namada across hard forks:
 FROM ghcr.io/anoma/namada:v1.0.0 AS namada-1.0.0
 FROM ghcr.io/anoma/namada:v1.1.1 AS namada-1.1.1
@@ -10,6 +28,7 @@ COPY --from=namada-1.0.0 /usr/local/bin/namada   /usr/local/bin/namada-1.0.0
 COPY --from=namada-1.0.0 /usr/local/bin/namadac /usr/local/bin/namadac-1.0.0
 COPY --from=namada-1.0.0 /usr/local/bin/namadan /usr/local/bin/namadan-1.0.0
 COPY --from=namada-1.0.0 /usr/local/bin/namadaw /usr/local/bin/namadaw-1.0.0
+COPY --from=util /undexer-db-util /usr/local/bin
 
 # Create and enter service root directory (where our sources will be installed)
 RUN mkdir -p /srv

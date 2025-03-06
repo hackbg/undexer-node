@@ -1,0 +1,9 @@
+[package]
+name = "undexer-db-util"
+version = "0.1.0"
+edition = "2024"
+description = "Fetches the latest block height, given a CometBFT LevelDB data directory."
+
+[dependencies]
+rocksdb = {version = "0.23", features = ["zstd", "bindgen-runtime"], default-features = false}
+clap = { version = "4.5", features = [ "cargo" ] }

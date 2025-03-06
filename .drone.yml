@@ -48,20 +48,20 @@ steps:
   # Image that connects to all known peers directly
   - export VARIANT="$IMAGE-all-direct"
   - >+
-    export PEERS="$(docker run -eBUILD_COLOR_VARIANT=direct -v $PWD:/app denoland/deno:1.46.3 run --allow-read=peers.json --allow-env=BUILD_COLOR_VARIANT /app/peers.js)"
+    export PEERS="$(docker run -eBUILD_COLOR_VARIANT=direct -v $PWD:/app denoland/deno:1.46.3 run --allow-read=peers.json --allow-env=BUILD_COLOR_VARIANT /app/src/peers.js)"
   - echo "Building $VARIANT with persistent peers $PEERS"
   - docker build $PARAMS -t "$VARIANT" --build-arg "PEERS=$PEERS" .
 
   # Image that connects to all known peers throgh green proxy with default config
   - export VARIANT="$IMAGE-all-green"
   - >+
-    #export PEERS="$(docker run -eBUILD_COLOR_VARIANT=green -v $PWD:/app denoland/deno:1.46.3 run --allow-read=peers.json --allow-env=BUILD_COLOR_VARIANT /app/peers.js)"
+    #export PEERS="$(docker run -eBUILD_COLOR_VARIANT=green -v $PWD:/app denoland/deno:1.46.3 run --allow-read=peers.json --allow-env=BUILD_COLOR_VARIANT /app/src/peers.js)"
   - echo "Building $VARIANT with persistent peers $PEERS"
   - docker build $PARAMS -t "$VARIANT" --build-arg "PEERS=$PEERS" .
 
   # Image that connects to all known peers throgh blue proxy with default config
   - export VARIANT="$IMAGE-all-blue"
   - >+
-    export PEERS="$(docker run -eBUILD_COLOR_VARIANT=blue -v $PWD:/app denoland/deno:1.46.3 run --allow-read=peers.json --allow-env=BUILD_COLOR_VARIANT /app/peers.js)"
+    export PEERS="$(docker run -eBUILD_COLOR_VARIANT=blue -v $PWD:/app denoland/deno:1.46.3 run --allow-read=peers.json --allow-env=BUILD_COLOR_VARIANT /app/src/peers.js)"
   - echo "Building $VARIANT with persistent peers $PEERS"
   - docker build $PARAMS -t "$VARIANT" --build-arg "PEERS=$PEERS" .

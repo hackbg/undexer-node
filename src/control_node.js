@@ -33,6 +33,7 @@ function main () {
     let namada = service.namadas[0n]
     // Find the next version to run
     for (const hardfork of Object.keys(service.namadas)) {
+      console.log('Switchover check:', block, hardfork)
       if (BigInt(block) > BigInt(hardfork)) {
         namada = service.namadas[hardfork]
         console.log('🟠 Switching over to', namada)
@@ -48,8 +49,8 @@ function main () {
     // Pause if epoch has incremented
     epoch = BigInt(epoch)
     if (epoch > service.epoch) {
+      console.log('🟠 Epoch has increased to', epoch, 'from', service.epoch)
       service.epoch = epoch
-      console.log('🟠 Epoch has increased to', epoch)
       service.events.dispatchEvent(new RequestPauseEvent())
     }
   })

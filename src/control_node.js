@@ -33,7 +33,7 @@ function main () {
     let namada = service.namadas[0n]
     // Find the next version to run
     for (const hardfork of Object.keys(service.namadas)) {
-      if (block > hardfork) {
+      if (BigInt(block) > BigInt(hardfork)) {
         namada = service.namadas[hardfork]
         console.log('🟠 Switching over to', namada)
         break

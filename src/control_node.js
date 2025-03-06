@@ -107,6 +107,7 @@ export class NamadaService extends Service {
     if (!namada) {
       throw new Error('NAMADA format: 0=...[,HardForkHeight=...]')
     }
+    console.log('Namada node versions:', namadas)
     // Start with 1st version of Namada node
     super('Namada', namada, 'ledger', 'run')
     // Which version to run starting from which block

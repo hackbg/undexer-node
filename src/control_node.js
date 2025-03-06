@@ -109,7 +109,7 @@ export class NamadaService extends Service {
     }
     console.log('Namada node versions:', namadas)
     // Start with 1st version of Namada node
-    super('Namada', namada, 'ledger', 'run')
+    super(`Namada (${namada})`, namada, 'ledger', 'run')
     // Which version to run starting from which block
     this.namadas = namadas
     // Currently selected version

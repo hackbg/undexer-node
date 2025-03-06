@@ -8,7 +8,8 @@ import { TextLineStream } from '../deps.js'
 import { initialize, environment, api } from './lib.js'
 import { Service } from './services.js'
 
-const DEFAULT_NAMADAS = "0=namadan-1.0.0,894000=namadan-1.1.1"
+const DEFAULT_NAMADAS  = "0=namadan-1.0.0,894000=namadan-1.1.1"
+const DEFAULT_CHAIN_ID = "namada.5f5de2dd1b88cba30586420"
 
 if (import.meta.main) setTimeout(main, 0)
 
@@ -19,26 +20,23 @@ function main () {
     HOST:     "0.0.0.0",
     PORT:     "25551",
     NAMADA:   DEFAULT_NAMADAS,
-    CHAIN_ID: "namada.5f5de2dd1b88cba30586420",
+    CHAIN_ID: DEFAULT_CHAIN_ID,
     NODE_OUT: "http://sync-proxy:25552"
   })
 
   // Namada node service manager
-  const service = new NamadaService(NAMADA, CHAIN_ID)
+  const service = new NamadaService({
+    namadas: NAMADA,
+    chainId: CHAIN_ID,
+    // FIXME: make this properly configurable based on existing env vars
+    startingHeight: getStartingHeight(`/home/namada/.local/share/namada/${CHAIN_ID}/db`),
+  })
 
   // When the node log contains block height and epoch, do the magic
   service.events.addEventListener('synced', async ({detail: {block, epoch}}) => {
     // Switch to next version of Namada node if hardfork has occurred
     block = BigInt(block)
-    let namada = service.namadas[0n]
-    // Find the next version to run
-    for (const hardfork of Object.keys(service.namadas)) {
-      console.log(`Switchover check (${block}): ${hardfork} = ${service.namadas[hardfork]}`)
-      namada = service.namadas[hardfork]
-      if (BigInt(block) < BigInt(hardfork)) {
-        break
-      }
-    }
+    const namada = getNamadaVersion(service.namadas, block)
     // If the next version is different to the current one, launch it
     if (namada != service.namada) {
       console.log('🟠 Switching over to', namada)
@@ -95,18 +93,56 @@ function main () {
   service.start()
 }
 
+function getStartingHeight (dbPath) {
+  const command = new Deno.Command('undexer-db-util', { args: [dbPath] })
+  const { code, stdout, stderr } = command.outputSync()
+  if (code === 0) {
+    const output = new TextDecoder().decode(stdout).trim()
+    try {
+      return BigInt(output)
+    } catch (e) {
+      console.error(e)
+      console.error(`🚨 undexer-db-util ${dbPath} returned invalid number: ${output.trim()}`)
+      console.warn(`🚨 Starting from height 0`)
+      return 0n
+    }
+  } else {
+    const output = new TextDecoder().decode(stderr).trim()
+    console.error(`🚨 undexer-db-util ${dbPath} failed (${code}): ${output}`)
+    console.warn(`🚨 Starting from height 0`)
+    return 0n
+  }
+}
+
+function getNamadaVersion (namadas, block) {
+  block = BigInt(block)
+  let namada = namadas[0n]
+  // Find the next version to run
+  for (const hardfork of Object.keys(namadas)) {
+    console.log(`Switchover check (${block}): ${hardfork} = ${namadas[hardfork]}`)
+    if (BigInt(block) >= BigInt(hardfork)) {
+      namada = namadas[hardfork]
+    }
+  }
+  return namada
+}
+
 export class NamadaService extends Service {
 
-  constructor (namadas = DEFAULT_NAMADAS, chainId) {
+  constructor ({
+    namadas = DEFAULT_NAMADAS,
+    chainId = DEFAULT_CHAIN_ID,
+    startingHeight = 0n,
+  } = {}) {
     // Multiple versions of Namada to support hard forks
     namadas = Object.fromEntries(namadas
       .split(',')
       .map(x=>x.split('='))
       .map(([block, bin])=>[BigInt(block), bin])
     )
-    const namada = namadas[0n]
+    const namada = getNamadaVersion(namadas, startingHeight)
     if (!namada) {
-      throw new Error('NAMADA format: 0=...[,HardForkHeight=...]')
+      throw new Error('NAMADA format: 0=...[[,HardForkHeight=...]...]')
     }
     console.log('Namada node versions:', namadas)
     // Start with 1st version of Namada node

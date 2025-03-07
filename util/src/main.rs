@@ -3,6 +3,7 @@ use std::result::Result;
 use std::error::Error;
 use clap::{arg, command, value_parser, ArgAction, Command};
 use rocksdb::{DB, Options};
+use data_encoding::BASE32HEX_NOPAD;
 fn main () -> Result<(), Box<dyn Error>> {
     let cli = command!()
         .arg(arg!([path] "Path to data directory")
@@ -18,8 +19,9 @@ fn main () -> Result<(), Box<dyn Error>> {
     println!("{height:?}");
 
     let block_cf = db.cf_handle("block").expect("no cf: block");
-    let key = format!("{height}/epoch");
-    let err = format!("no epoch in block cf, key: {key}");
+    let prefix = BASE32HEX_NOPAD.encode(&height.to_be_bytes());
+    let key = format!("{prefix}/epoch");
+    let err = format!("no epoch in block cf, key: {key:x?}");
     let e = db.get_cf(block_cf, &key)?.expect(&err);
     let epoch = u64::from_le_bytes([e[0], e[1], e[2], e[3], e[4], e[5], e[6], e[7]]);
     println!("{epoch:?}");

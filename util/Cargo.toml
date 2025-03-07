@@ -7,3 +7,4 @@ description = "Fetches the latest block height, given a CometBFT LevelDB data di
 [dependencies]
 rocksdb = {version = "0.23", features = ["zstd", "bindgen-runtime"], default-features = false}
 clap = { version = "4.5", features = [ "cargo" ] }
+data-encoding = "2.5"

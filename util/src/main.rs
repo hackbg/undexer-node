@@ -10,7 +10,7 @@ fn main () -> Result<(), Box<dyn Error>> {
     let args = cli.get_matches();
 
     let path = args.get_one::<PathBuf>("path").expect("pass a path");
-    let db = DB::open_cf_for_read_only(&Default::default(), path, ["state"], false)?;
+    let db = DB::open_cf_for_read_only(&Default::default(), path, ["state", "block"], false)?;
 
     let state_cf = db.cf_handle("state").expect("no cf: state");
     let h = db.get_cf(state_cf, "height")?.expect("no height in state cf");

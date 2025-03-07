@@ -25,11 +25,15 @@ function main () {
   })
 
   // Namada node service manager
+  const [startingHeight, startingEpoch] = getHeightAndEpoch(
+    // FIXME: make this properly configurable based on existing env vars
+    `/home/namada/.local/share/namada/${CHAIN_ID}/db`
+  )
   const service = new NamadaService({
     namadas: NAMADA,
     chainId: CHAIN_ID,
-    // FIXME: make this properly configurable based on existing env vars
-    startingHeight: getStartingHeight(`/home/namada/.local/share/namada/${CHAIN_ID}/db`),
+    startingHeight,
+    startingEpoch,
   })
 
   // When the node log contains block height and epoch, do the magic
@@ -90,28 +94,28 @@ function main () {
   })
 
   // And away we go!
-  await this.printConfig()
-  service.start()
+  service.printConfig().then(()=>service.start())
 }
 
-function getStartingHeight (dbPath) {
+function getHeightAndEpoch (dbPath) {
   const command = new Deno.Command('undexer-db-util', { args: [dbPath] })
   const { code, stdout, stderr } = command.outputSync()
   if (code === 0) {
     const output = new TextDecoder().decode(stdout).trim()
     try {
-      return BigInt(output)
+      const [height, epoch] = output.split('\n')
+      return [BigInt(height), BigInt(epoch)]
     } catch (e) {
       console.error(e)
       console.error(`🚨 undexer-db-util ${dbPath} returned invalid number: ${output.trim()}`)
       console.warn(`🚨 Starting from height 0`)
-      return 0n
+      return [0n, 0n]
     }
   } else {
     const output = new TextDecoder().decode(stderr).trim()
     console.error(`🚨 undexer-db-util ${dbPath} failed (${code}): ${output}`)
     console.warn(`🚨 Starting from height 0`)
-    return 0n
+    return [0n, 0n]
   }
 }
 
@@ -134,6 +138,7 @@ export class NamadaService extends Service {
     namadas = DEFAULT_NAMADAS,
     chainId = DEFAULT_CHAIN_ID,
     startingHeight = 0n,
+    startingEpoch  = 0n,
   } = {}) {
     // Multiple versions of Namada to support hard forks
     namadas = Object.fromEntries(namadas
@@ -158,8 +163,8 @@ export class NamadaService extends Service {
     this.regex   = new RegExp('Block height: (\\d+).+epoch: (\\d+)')
     // Brokers events asynchronously
     this.events  = new EventTarget()
-    // Current epoch (FIXME: need to persist this!)
-    this.epoch   = 0n
+    // Current epoch
+    this.epoch   = startingEpoch
   }
 
   // Print config

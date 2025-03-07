@@ -18,7 +18,9 @@ fn main () -> Result<(), Box<dyn Error>> {
     println!("{height:?}");
 
     let block_cf = db.cf_handle("block").expect("no cf: block");
-    let e = db.get_cf(block_cf, format!("{height}/epoch"))?.expect("no epoch in block cf");
+    let key = format!("{height}/epoch");
+    let err = format!("no epoch in block cf, key: {key}");
+    let e = db.get_cf(block_cf, &key)?.expect(&err);
     let epoch = u64::from_le_bytes([e[0], e[1], e[2], e[3], e[4], e[5], e[6], e[7]]);
     println!("{epoch:?}");
     Ok(())

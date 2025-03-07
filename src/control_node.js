@@ -90,6 +90,7 @@ function main () {
   })
 
   // And away we go!
+  await this.printConfig()
   service.start()
 }
 
@@ -159,12 +160,6 @@ export class NamadaService extends Service {
     this.events  = new EventTarget()
     // Current epoch (FIXME: need to persist this!)
     this.epoch   = 0n
-  }
-
-  // Print config before launching node
-  async start () {
-    await this.printConfig()
-    return super.start()
   }
 
   // Print config

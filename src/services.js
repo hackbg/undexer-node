@@ -93,20 +93,23 @@ export class Service extends LogPipe {
     const options = { args: this.args, stdout: 'piped', stderr: 'piped' }
     // Spawn child process
     this.process = new Deno.Command(this.command, options).spawn()
+    const pid = this.process.pid
     // Listen for process exit
     this.process.status.then(status=>{
       console.log(
         '🟠 Died:',    this.name,
-        'with PID:',   this.process.pid,
+        'with PID:',   pid,
         'and status:', JSON.stringify(status)
       )
       this.process = null
     })
-    console.log('🚀 Started: ', this.name, 'at PID:', this.process.pid)
+    console.log('🚀 Started: ', this.name, 'at PID:', pid)
     // Write service stdout and stderr to host stdout
     this.pipe(this.process.stdout, "stdout")
     this.pipe(this.process.stderr, "stderr")
-    return await this.state()
+    const state = await this.state()
+    this.process = null
+    return state
   }
   async pause () {
     console.log('🟠 Stopping:', this.name)

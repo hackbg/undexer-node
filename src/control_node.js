@@ -45,7 +45,9 @@ function main () {
     if (namada != service.namada) {
       console.log('🟠 Switching over to', namada)
       await service.pause()
+      service.name = `Namada ${namada}`
       service.namada = namada
+      service.command = namada
       await service.start()
     }
     // Pause if epoch has incremented

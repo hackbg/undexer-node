@@ -1,4 +1,4 @@
-#!/usr/bin/env -S deno run --allow-net --allow-run=simpleproxy,pkill,pgrep --allow-env=HOST,PORT,PROXY,LOCAL,REMOTE
+#!/usr/bin/env -S deno run --unstable-otel --allow-net --allow-run=simpleproxy,pkill,pgrep --allow-env=HOST,PORT,PROXY,LOCAL,REMOTE
 // This service manages a `simpleproxy` that receives incoming connections
 // from the indexer, and proxies them to the node over the internal network.
 import { initialize, environment, api } from './lib.js'

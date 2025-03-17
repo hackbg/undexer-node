@@ -1,4 +1,4 @@
-#!/usr/bin/env -S deno run --allow-net --allow-env=HOST,PORT,CONFIG --allow-read=peers.json
+#!/usr/bin/env -S deno run --unstable-otel --allow-net --allow-env=HOST,PORT,CONFIG --allow-read=peers.json
 import peerMap from './peers.json' with { type: 'json' }
 import { initialize, environment, api, respond } from './lib.js'
 

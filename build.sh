@@ -13,7 +13,7 @@ export IMAGE="$OCI_NAME:$(cat BRANCH | tr '/' '_' | tr '\n' ' ')"
 
 printf "Name: $OCI_NAME\nImage: $IMAGE\n"
 buildah pull "$IMAGE" || true
-export PARAMS="--network=host --cache-from=$OCI_NAME -f Dockerfile"
+export PARAMS="--layers --cache-from=$OCI_NAME --cache-to=$OCI_NAME --network=host --cache-from=$OCI_NAME -f Dockerfile"
 
 buildah build $PARAMS -t "$IMAGE" .
 buildah push "$IMAGE"

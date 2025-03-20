@@ -10,10 +10,10 @@ FROM rust:slim-bookworm@sha256:1b2d3c90bad6287266377cf9e7aa2c80001ae632dff308528
   RUN cat Cargo.toml \
    && mkdir -p src \
    && touch src/lib.rs \
-   && PATH=$PATH:~/.cargo/bin cargo build --release
+   && PATH=$PATH:~/.cargo/bin cargo build --release --verbose
   COPY ./util/src ./src
   RUN rm src/lib.rs \
-   && PATH=$PATH:~/.cargo/bin cargo build --release \
+   && PATH=$PATH:~/.cargo/bin cargo build --release --verbose \
    && mv target/release/undexer-db-util / \
    && rm -rf target
 

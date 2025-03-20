@@ -3,9 +3,7 @@ kind: pipeline
 type: docker
 name: build
 trigger: { event: [ push ] }
-volumes: [ { name: cache, host: { path: /data/ci-cache-docker } } ]
 steps:
-
 - name: git
   image: alpine/git:latest
   commands:
@@ -14,12 +12,11 @@ steps:
   - printf $(git rev-parse --abbrev-ref HEAD) > BRANCH
   - cat BRANCH
   - git submodule update --init --recursive --depth 1
-
 - name: build
   image: docker:28.0.1-alpine3.21
   privileged: true
   environment:
-    OCI_NAME: "oci.hack.bg/undexer"
+    OCI_NAME: "oci.hack.bg/namada"
     OCI_USER: { from_secret: "oci-user" }
     OCI_PASS: { from_secret: "oci-pass" }
   commands:

@@ -14,7 +14,6 @@ export IMAGE="$OCI_HOST/$OCI_NAME:$TAG"
 #export IMAGE="$OCI_$OCI_NAME:$VERSION-$DISTRO"
 
 printf "Name: $OCI_NAME\nImage: $IMAGE\n"
-buildah pull "$IMAGE" || true
 export PARAMS="--layers --cache-from=$CACHE --cache-to=$CACHE --network=host --cache-from=$OCI_NAME -f Dockerfile"
 
 buildah build $PARAMS -t "$IMAGE" .

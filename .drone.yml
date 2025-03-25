@@ -3,21 +3,24 @@ kind: pipeline
 type: docker
 name: build
 trigger: { event: [ push ] }
+image_pull_secrets: [ oci_hack_bg ] # https://docs.drone.io/pipeline/docker/syntax/images/#pulling-private-images
 steps:
-- name: git
-  image: alpine/git:latest
+- name: build
+  image: oci.hack.bg/platform-root-alpine:latest
+  pull: always
+  privileged: true
+  environment:
+    OCI_HOST: "oci.hack.bg"
+    OCI_NAME: "namada"
+    OCI_USER: { from_secret: "oci-user" }
+    OCI_PASS: { from_secret: "oci-pass" }
+    OCI_CACHE_HOST: "cache.build.hack.bg"
+    OCI_CACHE_USER: { from_secret: "oci-cache-user" }
+    OCI_CACHE_PASS: { from_secret: "oci-cache-pass" }
   commands:
   - echo $HOME
   - ls -al $HOME
   - printf $(git rev-parse --abbrev-ref HEAD) > BRANCH
   - cat BRANCH
   - git submodule update --init --recursive --depth 1
-- name: build
-  image: docker:28.0.1-alpine3.21
-  privileged: true
-  environment:
-    OCI_NAME: "oci.hack.bg/namada"
-    OCI_USER: { from_secret: "oci-user" }
-    OCI_PASS: { from_secret: "oci-pass" }
-  commands:
   - ./build.sh debian

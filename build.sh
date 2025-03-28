@@ -19,19 +19,23 @@ export PARAMS="--layers --cache-from=$CACHE --cache-to=$CACHE --network=host --c
 buildah build $PARAMS -t "$IMAGE" .
 buildah push "$IMAGE"
 
-export VARIANT="$IMAGE-all-direct"
-export PEERS="$(docker run -eBUILD_COLOR_VARIANT=direct -v $PWD:/app denoland/deno:1.46.3 run --allow-read=peers.json --allow-env=BUILD_COLOR_VARIANT /app/src/peers.js)"
+export BUILD_COLOR_VARIANT="direct"
+export VARIANT="$IMAGE-all-$BUILD_COLOR_VARIANT"
+export PEERS="$(cd src && deno run --allow-read=peers.json peers.js)"
 echo "Building $VARIANT with persistent peers $PEERS"
 buildah build $PARAMS -t "$VARIANT" --build-arg "PEERS=$PEERS" .
 buildah push "$VARIANT"
 
-export VARIANT="$IMAGE-all-green"
+export BUILD_COLOR_VARIANT="green"
+export VARIANT="$IMAGE-all-$BUILD_COLOR_VARIANT"
+export PEERS="$(cd src && deno run --allow-read=peers.json peers.js)"
 echo "Building $VARIANT with persistent peers $PEERS"
 buildah build $PARAMS -t "$VARIANT" --build-arg "PEERS=$PEERS" .
 buildah push "$VARIANT"
 
-export VARIANT="$IMAGE-all-blue"
-export PEERS="$(docker run -eBUILD_COLOR_VARIANT=blue -v $PWD:/app denoland/deno:1.46.3 run --allow-read=peers.json --allow-env=BUILD_COLOR_VARIANT /app/src/peers.js)"
+export BUILD_COLOR_VARIANT="blue"
+export VARIANT="$IMAGE-all-$BUILD_COLOR_VARIANT"
+export PEERS="$(cd src && deno run --allow-read=peers.json peers.js)"
 echo "Building $VARIANT with persistent peers $PEERS"
 buildah build $PARAMS -t "$VARIANT" --build-arg "PEERS=$PEERS" .
 buildah push "$VARIANT"

@@ -22,6 +22,7 @@ buildah push "$IMAGE"
 export BUILD_COLOR_VARIANT="direct"
 export VARIANT="$IMAGE-all-$BUILD_COLOR_VARIANT"
 export PEERS="$(cd src && deno run --allow-read=peers.json peers.js)"
+[[ -z "$PEERS" ]] && echo "No persistent peers could be provided for $BUILD_COLOR_VARIANT" && exit 1
 echo "Building $VARIANT with persistent peers $PEERS"
 buildah build $PARAMS -t "$VARIANT" --build-arg "PEERS=$PEERS" .
 buildah push "$VARIANT"
@@ -29,6 +30,7 @@ buildah push "$VARIANT"
 export BUILD_COLOR_VARIANT="green"
 export VARIANT="$IMAGE-all-$BUILD_COLOR_VARIANT"
 export PEERS="$(cd src && deno run --allow-read=peers.json peers.js)"
+[[ -z "$PEERS" ]] && echo "No persistent peers could be provided for $BUILD_COLOR_VARIANT" && exit 1
 echo "Building $VARIANT with persistent peers $PEERS"
 buildah build $PARAMS -t "$VARIANT" --build-arg "PEERS=$PEERS" .
 buildah push "$VARIANT"
@@ -36,6 +38,7 @@ buildah push "$VARIANT"
 export BUILD_COLOR_VARIANT="blue"
 export VARIANT="$IMAGE-all-$BUILD_COLOR_VARIANT"
 export PEERS="$(cd src && deno run --allow-read=peers.json peers.js)"
+[[ -z "$PEERS" ]] && echo "No persistent peers could be provided for $BUILD_COLOR_VARIANT" && exit 1
 echo "Building $VARIANT with persistent peers $PEERS"
 buildah build $PARAMS -t "$VARIANT" --build-arg "PEERS=$PEERS" .
 buildah push "$VARIANT"

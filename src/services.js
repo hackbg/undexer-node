@@ -1,4 +1,5 @@
 import { TextLineStream } from "../deps.js"
+import { log } from './lib.js'
 
 export class ServiceManager {
   constructor (services) {
@@ -32,10 +33,15 @@ export class ServiceManager {
           case '': return respond(200, info)
           default: return respond(404, { error: 'not found' })
         }
-      } catch (e) {
+      } catch (error) {
         // Error handler
-        console.error(e)
-        return respond(500, { error: e.message||e })
+        log.error("Request handling error", {
+          respondedWith: 500,
+          message: error.message,
+          stack: error.stack,
+          error
+        })
+        return respond(500, { error: error.message||error })
       }
       // Return a redirect to another path on the same host
       function redirect (pathname) {
@@ -85,9 +91,9 @@ export class Service extends LogPipe {
     return status.success
   }
   async start () {
-    console.log('🚀 Starting:', this.name)
+    log.start('Starting', { name: this.name })
     if (this.process) {
-      console.log('🚀 Already started:', this.name)
+      log.start('Already started', { name: this.name })
       return false
     }
     const options = { args: this.args, stdout: 'piped', stderr: 'piped' }
@@ -96,14 +102,10 @@ export class Service extends LogPipe {
     const pid = this.process.pid
     // Listen for process exit
     this.process.status.then(status=>{
-      console.log(
-        '🟠 Died:',    this.name,
-        'with PID:',   pid,
-        'and status:', JSON.stringify(status)
-      )
+      log.warn('Died', { name: this.name, pid, status })
       this.process = null
     })
-    console.log('🚀 Started: ', this.name, 'at PID:', pid)
+    log.start('Started', { name: this.name, pid })
     // Write service stdout and stderr to host stdout
     this.pipe(this.process.stdout, "stdout")
     this.pipe(this.process.stderr, "stderr")
@@ -112,14 +114,14 @@ export class Service extends LogPipe {
     return state
   }
   async pause () {
-    console.log('🟠 Stopping:', this.name)
+    log.stop('Stopping', { name: this.name })
     if (!this.process) {
-      console.log('🟠 Already stopped:', this.name)
+      log.stop('Already stopped', { name: this.name })
       return false
     }
     const { pid } = this.process
     await new Deno.Command('pkill', { args: ['-9', this.command] }).spawn().status
-    console.log('🟠 Stopped:', this.name, 'at PID:', pid)
+    log.ok('Stopped', { name: this.name, pid })
     return await this.state()
   }
   routes () {
@@ -136,7 +138,7 @@ export class MultiService extends LogPipe {
     super()
     this.name     = name
     this.commands = commands
-    console.log('🚀 Init', this.name, 'with', this.commands)
+    log.start('Init', { name: this.name, commands: this.commands })
     this.processes = commands.map(_=>null)
   }
   async state () {
@@ -150,19 +152,19 @@ export class MultiService extends LogPipe {
     }))
   }
   async start () {
-    console.log('🚀 Starting:', this.name)
+    log.start('Starting:', { name: this.name })
     if (this.processes.every(Boolean)) {
-      console.log('🚀 Already started:', this.name)
+      log.start('Already started:', { name: this.name })
       return false
     }
     if (this.processes.some(Boolean)) {
-      console.log('🟠 Partially started, killing all and restarted:', this.name)
+      log.warn('Partially started, killing all and restarting:', { name: this.name })
       await this.pause()
     }
     // Spawn each child process
     for (const c in this.commands) {
       const [command, ...args] = this.commands[c]
-      console.log('🚀 Spawning:', this.commands[c])
+      log.start('Spawning', { name: this.name, command: this.commands[c] })
       this.processes[c] = new Deno.Command(command, {
         args,
         stdout: 'piped',
@@ -170,14 +172,10 @@ export class MultiService extends LogPipe {
       }).spawn()
       // Listen for process exit
       this.processes[c].status.then(status=>{
-        console.log(
-          '🟠 Died:',    this.name,
-          'with PID:',   this.processes[c].pid,
-          'and status:', JSON.stringify(status)
-        )
+        log.stop('Died', { name: this.name, pid: this.processes[c].pid, status })
         this.processes[c] = null
       })
-      console.log('🚀 Started: ', this.name, 'at PID:', this.processes[c].pid)
+      log.start('Started', { name: this.name, pid: this.processes[c].pid })
       // Write service stdout and stderr to host stdout
       this.pipe(this.processes[c].stdout, "stdout")
       this.pipe(this.processes[c].stderr, "stderr")
@@ -185,14 +183,14 @@ export class MultiService extends LogPipe {
     return await this.state()
   }
   async pause () {
-    console.log('🟠 Stopping:', this.name)
+    log.stop('Stopping', { name: this.name })
     if (this.processes.every(x=>Boolean(x)===false)) {
-      console.log('🟠 Already stopped:', this.name)
+      log.stop('Already stopped', { name: this.name })
       return false
     }
     await Promise.all(this.commands.map(async ([command])=>{
       await new Deno.Command('pkill', { args: ['-e', '-9', command] }).spawn().status
-      console.log('🟠 Stopped:', this.name)
+      log.stop('Stopped', { name: this.name })
     }))
     return await this.state()
   }

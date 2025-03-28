@@ -2,8 +2,11 @@ import { TextLineStream } from "../deps.js"
 
 const stringifier = (k, v) => (typeof v === 'bigint') ? String(v) : v
 const stringify = x => JSON.stringify(x, stringifier)
+
 export const log = {
+  start: (message, data = {}) => console.info(stringify({ icon: "🚀", message, ...data })),
   wait:  (message, data = {}) => console.info(stringify({ icon: "⌛", message, ...data })),
+  stop:  (message, data = {}) => console.info(stringify({ icon: "🟠", message, ...data })),
   ok:    (message, data = {}) => console.log(stringify({ icon: "🟢", message, ...data })),
   warn:  (message, data = {}) => console.warn(stringify({ icon: "🟠", message, ...data })),
   error: (message, data = {}) => console.error(stringify({ icon: "🔴", message, ...data })),

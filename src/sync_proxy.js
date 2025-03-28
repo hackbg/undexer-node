@@ -1,14 +1,14 @@
 #!/usr/bin/env -S deno run --unstable-otel --allow-net --allow-env=HOST,PORT,CONFIG --allow-read=peers.json
 import peerMap from './peers.json' with { type: 'json' }
-import { initialize, environment, api, respond } from './lib.js'
+import { log, initialize, environment, api, respond } from './lib.js'
 
 if (import.meta.main) main()
 
 function main () {
   const t0 = initialize()
   const { HOST, PORT, CONFIG } = environment({
-    HOST:   '0.0.0.0',
-    PORT:   '25552',
+    HOST: '0.0.0.0',
+    PORT: '25552',
     CONFIG: Object.entries(peerMap).map(([port, url])=>`${port}=${new URL(url).host}`).join(',')
   })
   const config = parseConfig(CONFIG)
@@ -23,21 +23,21 @@ async function run (localHost, controlPort, proxyConfig) {
   // Collection of active connections to close when pause signal is received
   const connections = new Set()
   // Print the proxy config that is in use
-  console.log('🟢 Proxy config:', JSON.stringify(proxyConfig, null, 2))
+  log.ok("Proxy config", { proxyConfig })
   // Test the configured peers
   Promise.all(Object.values(proxyConfig).map(async ({remoteHost, remotePort})=>{
-    console.log(`⌛ Checking peer: ${remoteHost}:${remotePort}`)
+    log.wait(`Checking peer`, { remoteHost, remotePort })
     try {
       const conn   = await Deno.connect({ hostname: remoteHost, port: remotePort })
       const buffer = new Uint8Array(0x100)
       const length = await conn.read(buffer)
       if ((buffer[0] === 0x22) && (buffer[1] === 0x0a) && (buffer[2] === 0x20)) {
-        console.log(`🟢 Valid peer: ${remoteHost}:${remotePort}`)
+        log.ok("Valid peer", { remoteHost, remotePort })
       } else {
-        console.log(`🟠 Invalid peer: ${remoteHost}:${remotePort}, returned:`, buffer)
+        log.warn("Invalid peer", { remoteHost, remotePort, returned: buffer })
       }
-    } catch (e) {
-      console.log(`🔴 Dead peer: ${remoteHost}:${remotePort}`, e)
+    } catch (error) {
+      log.error("Dead peer or connection error", { remoteHost, remotePort, error })
     }
   }))
   // Handler: report status
@@ -45,7 +45,7 @@ async function run (localHost, controlPort, proxyConfig) {
   // Handler: enable proxy
   const start  = () => {
     if (!canConnect) {
-      console.log('🟢 Enabling new connections')
+      log.ok("Enabling new connections")
       canConnect = true
     }
     return respond(200, { canConnect, connections: connections.size })
@@ -55,23 +55,24 @@ async function run (localHost, controlPort, proxyConfig) {
     let connectionsJustClosed = 0
     let connectionsAlreadyClosed = 0
     if (canConnect) {
-      console.log('🟠 Disabling new connections')
+      log.warn("Disabling new connections")
       canConnect = false
     }
     if (connections.size > 0) {
-      console.log('Closing/cleaning up', connections.size, 'connection(s)')
+      log.wait("Closing/cleaning up", { connections: connections.size })
       for (const connection of connections) {
         const { localAddr, remoteAddr } = connection
         try {
           connection.close()
-          console.log('Closed:', formatAddr(localAddr), '<->', formatAddr(remoteAddr))
+          log.ok('Closed:', { localAddr: formatAddr(localAddr), remoteAddr: formatAddr(remoteAddr) })
           connectionsJustClosed++
-        } catch (e) {
-          if (e.name === 'BadResource') {
-            console.log('Cleaned up:', formatAddr(localAddr), '<->', formatAddr(remoteAddr))
+        } catch (error) {
+          if (error.name === 'BadResource') {
+            log.ok('Cleaned up:', { localAddr: formatAddr(localAddr), remoteAddr: formatAddr(remoteAddr) })
             connectionsAlreadyClosed++
           } else {
-            throw e
+            log.error("Close error", { error })
+            throw error
           }
         }
         connections.delete(connection)
@@ -88,9 +89,9 @@ async function run (localHost, controlPort, proxyConfig) {
   api('MultiSync', localHost, controlPort, { '/': status, '/start': start, '/pause': pause }, {
     onMessage: ({ event }) => {
       const data = JSON.parse(event.data)
-      console.log('WS message received:', data)
+      log.ok("WS message received", { data })
       if (data.resume) {
-        console.log('🟢 Resuming sync...')
+        log.ok("Resuming sync")
         start()
       }
     }
@@ -104,12 +105,12 @@ async function run (localHost, controlPort, proxyConfig) {
       for await (const connection of listener) {
         // If connecting is enabled:
         if (canConnect) {
-          console.log(`⏳ ${localPort}->${remoteHost}:${remotePort}: connecting`)
+          log.wait("Connecting", { localPort, remoteHost, remotePort })
           try {
             // Establish connection to server
             const remote = await Deno.connect({ hostname: remoteHost, port: remotePort })
             // Store connection handle (to close on pause)
-            console.log(`🟢 ${localPort}->${remoteHost}:${remotePort}: connected`)
+            log.ok("Connected", { localPort, remoteHost, remotePort })
             // Collect connection to close it on pause
             connections.add(connection)
             // Proxy client to server and back
@@ -117,27 +118,23 @@ async function run (localHost, controlPort, proxyConfig) {
               connection.readable.pipeTo(remote.writable),
               remote.readable.pipeTo(connection.writable),
             ])
-          } catch (e) {
-            if (e.code) {
-              console.error(`🔴 ${localPort}->${remoteHost}:${remotePort}: ${e.code}`)
-            } else {
-              console.error(`🔴 ${localPort}->${remoteHost}:${remotePort}`, e)
-            }
+          } catch (error) {
+            log.error("Connect error", { localPort, remoteHost, remotePort, error })
           }
         } else {
-          console.log(`🟠 ${localPort}->${remoteHost}:${remotePort}: rejected`)
+          log.warn("Paused, connection rejected", { localPort, remoteHost, remotePort })
           connection.close()
         }
       }
-    } catch (e) {
-      console.error(`🔴`, e)
+    } catch (error) {
+      log.error(error.message, { error })
     }
   }))
 }
 
 function parseConfig (text) {
   const configError1 = (config) => {
-    console.error(`🔴 Config:`, config)
+    log.error(`Error in config:`, { config })
     return new Error(`Invalid config; format: LPORT=RHOST:RPORT[,LPORT=RHOST:RPORT]*`)
   }
   const configError2 = (port) => new Error(`Invalid local port in config: ${port}`)

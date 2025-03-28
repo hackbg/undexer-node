@@ -1,6 +1,10 @@
-#!/bin/sh
+#!/usr/bin/env bash
 set -euxo pipefail
-apk add --no-cache buildah fuse-overlayfs netavark iptables
+apt update && apt install -y buildah fuse-overlayfs netavark iptables
+mkdir -p /etc/containers && printf \
+  "[registries.search]\nregistries = [\"docker.io\", \"quay.io\"]\n" \
+  > /etc/containers/registries.conf
+
 echo "$OCI_PASS" | \
   buildah login -u "$OCI_USER" --password-stdin "https://$OCI_HOST"
 echo "$OCI_CACHE_PASS" | \
@@ -21,7 +25,7 @@ buildah push "$IMAGE"
 
 export BUILD_COLOR_VARIANT="direct"
 export VARIANT="$IMAGE-all-$BUILD_COLOR_VARIANT"
-export PEERS="$(cd src && deno run --allow-read=peers.json peers.js)"
+export PEERS="$(cd src && deno run --allow-env=BUILD_COLOR_VARIANT --allow-read=peers.json peers.js)"
 [[ -z "$PEERS" ]] && echo "No persistent peers could be provided for $BUILD_COLOR_VARIANT" && exit 1
 echo "Building $VARIANT with persistent peers $PEERS"
 buildah build $PARAMS -t "$VARIANT" --build-arg "PEERS=$PEERS" .
@@ -29,7 +33,7 @@ buildah push "$VARIANT"
 
 export BUILD_COLOR_VARIANT="green"
 export VARIANT="$IMAGE-all-$BUILD_COLOR_VARIANT"
-export PEERS="$(cd src && deno run --allow-read=peers.json peers.js)"
+export PEERS="$(cd src && deno run --allow-env=BUILD_COLOR_VARIANT --allow-read=peers.json peers.js)"
 [[ -z "$PEERS" ]] && echo "No persistent peers could be provided for $BUILD_COLOR_VARIANT" && exit 1
 echo "Building $VARIANT with persistent peers $PEERS"
 buildah build $PARAMS -t "$VARIANT" --build-arg "PEERS=$PEERS" .
@@ -37,7 +41,7 @@ buildah push "$VARIANT"
 
 export BUILD_COLOR_VARIANT="blue"
 export VARIANT="$IMAGE-all-$BUILD_COLOR_VARIANT"
-export PEERS="$(cd src && deno run --allow-read=peers.json peers.js)"
+export PEERS="$(cd src && deno run --allow-env=BUILD_COLOR_VARIANT --allow-read=peers.json peers.js)"
 [[ -z "$PEERS" ]] && echo "No persistent peers could be provided for $BUILD_COLOR_VARIANT" && exit 1
 echo "Building $VARIANT with persistent peers $PEERS"
 buildah build $PARAMS -t "$VARIANT" --build-arg "PEERS=$PEERS" .

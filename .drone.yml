@@ -6,7 +6,7 @@ trigger: { event: [ push ] }
 image_pull_secrets: [ oci_hack_bg ] # https://docs.drone.io/pipeline/docker/syntax/images/#pulling-private-images
 steps:
 - name: build
-  image: oci.hack.bg/platform-root-alpine:latest
+  image: oci.hack.bg/platform-root-debian:latest
   pull: always
   privileged: true
   environment:

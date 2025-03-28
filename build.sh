@@ -1,5 +1,5 @@
 #!/bin/sh
-set -ex
+set -euxo pipefail
 apk add --no-cache buildah fuse-overlayfs netavark iptables
 echo "$OCI_PASS" | \
   buildah login -u "$OCI_USER" --password-stdin "https://$OCI_HOST"

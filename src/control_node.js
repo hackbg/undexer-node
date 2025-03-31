@@ -5,7 +5,7 @@
 // connections from the node. Once the indexer is done with the current epoch, it tells
 // the outgoing service to resume.
 import { TextLineStream } from '../deps.js'
-import { initialize, environment, api } from './lib.js'
+import { log, initialize, environment, api } from './lib.js'
 import { Service } from './services.js'
 
 const DEFAULT_NAMADAS  = "0=namadan-1.0.0,894000=namadan-1.1.1"
@@ -43,7 +43,7 @@ function main () {
     const namada = getNamadaVersion(service.namadas, block)
     // If the next version is different to the current one, launch it
     if (namada != service.namada) {
-      console.log('🟠 Switching over to', namada)
+      log.stop('Switching over to', { version: namada })
       await service.pause()
       service.name = `Namada ${namada}`
       service.namada = namada
@@ -53,7 +53,7 @@ function main () {
     // Pause if epoch has incremented
     epoch = BigInt(epoch)
     if (epoch > service.epoch) {
-      console.log('🟠 Epoch has increased to', epoch, 'from', service.epoch)
+      log.stop('Epoch increase', { epoch, from: service.epoch })
       service.epoch = epoch
       service.events.dispatchEvent(new RequestPauseEvent())
     }
@@ -64,10 +64,10 @@ function main () {
   service.events.addEventListener('request-pause', async () => {
     let canConnect = true
     while (canConnect) {
-      console.log('🟠 Requesting pause until indexer catches up.')
+      log.stop('Requesting pause until indexer catches up.')
       const response = await fetch(`${NODE_OUT}/pause`)
       const responseJson = await response.json()
-      console.log('🟠 Pause response:', responseJson)
+      log.stop('Pause response:', { responseJson })
       canConnect = responseJson.canConnect
       await new Promise(resolve=>setTimeout(resolve, 100))
     }
@@ -87,7 +87,7 @@ function main () {
     onMessage: async ({ event }) => {
       const data = JSON.parse(event.data)
       if (data.restart) {
-        console.log('🚨 Restarting sync from beginning...')
+        log.warn('🚨 Restarting sync from beginning...')
         await service.pause()
         await service.deleteData()
         await service.start()
@@ -126,7 +126,7 @@ function getNamadaVersion (namadas, block) {
   let namada = namadas[0n]
   // Find the next version to run
   for (const hardfork of Object.keys(namadas)) {
-    console.log(`Switchover check (${block}): ${hardfork} = ${namadas[hardfork]}`)
+    log.log(`Switchover check`, { block, hardFork, namada: namadas[hardfork] })
     if (BigInt(block) >= BigInt(hardfork)) {
       namada = namadas[hardfork]
     }
@@ -152,7 +152,7 @@ export class NamadaService extends Service {
     if (!namada) {
       throw new Error('NAMADA format: 0=...[[,HardForkHeight=...]...]')
     }
-    console.log('Namada node versions:', namadas)
+    log.log('Namada node versions:', { namadas })
     // Start with 1st version of Namada node
     super(`Namada (${namada})`, namada, 'ledger', 'run')
     // Which version to run starting from which block
@@ -174,7 +174,7 @@ export class NamadaService extends Service {
     const configPath = `/home/namada/.local/share/namada/${this.chainId}/config.toml`
     const config = (await Deno.readTextFile(configPath)).split('\n')
     for (const line of config.filter(line=>line.includes('persistent_peers'))) {
-      console.log('ℹ️ Config:', line)
+      log.log('Config:', { line })
     }
   }
 
@@ -195,7 +195,7 @@ export class NamadaService extends Service {
     if (match) {
       // Report block and epoch progress
       const [block, epoch] = match.slice(1)
-      console.log(`🟢 Sync: block ${block} of epoch ${epoch}`)
+      log.log(`Sync`, { block, epoch })
       this.events.dispatchEvent(new SyncEvent({ block, epoch }))
     }
   }
@@ -204,7 +204,7 @@ export class NamadaService extends Service {
     * than 2 epochs ahead of the sync. */
   async deleteData () {
     while (true) try {
-      console.log('Deleting node data...')
+      log.warn('Deleting node data...')
       await Promise.all([
         `db`, 'cometbft', 'tx_wasm_cache', 'vp_wasm_cache'
       ].map(path=>Deno.remove(`/home/namada/.local/share/namada/${this.chainId}/${path}`, {
@@ -212,7 +212,7 @@ export class NamadaService extends Service {
       })))
       break
     } catch (e) {
-      console.warn(`Failed to remove ${path} (${e.message})`)
+      log.warn(`Failed to remove ${path} (${e.message})`)
     }
   }
 }
